@@ -1,0 +1,8 @@
+<form method=post>
+  <textarea name="message"></textarea>
+  <input type=submit value=Shout>
+</form>
+
+<% @shouts.each do |shout| %>
+  <p>Someone wrote, <q><a href="/show/<%=h shout.id%>"><%=h shout.message %></a></q> at <%=h shout.created_at %></p>
+<% end %>

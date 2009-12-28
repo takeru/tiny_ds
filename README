@@ -1,0 +1,13 @@
+* TinyDS -- tiny datastore library for GAE/JRuby
+
+github : http://github.com/takeru/tiny_ds
+
+** run shout demo
+ % dev_appserver.rb .
+
+** how to run specs
+install jruby 1.4.0
+ % source set_classpath_for_jruby.sh (set classpath, please read spec/spec_helper.rb)
+ % jruby -S spec -c -b spec/basic_spec.rb
+   or 
+ % jruby -e "ENV['RSPEC']='true'; ENV['AUTOTEST']='true'; system('jruby -S autotest', *ARGV)"
