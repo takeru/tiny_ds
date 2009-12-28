@@ -1,7 +1,13 @@
 * TinyDS -- tiny datastore library for GAE/JRuby
+  github: http://github.com/takeru/tiny_ds
 
-github : http://github.com/takeru/tiny_ds
-
+ - CRUD like a ActiveRecord or DataMapepr
+ - set parent, key, id, name, and find by these, YES entity-group-transaction!!
+ - BASE transaction : http://blog.notdot.net/2009/9/Distributed-Transactions-on-App-Engine
+ - query : very thin wrapper of low level API.
+ - Shout demo app. (sinatra)
+ - some specs..
+  
 ** run shout demo
  % dev_appserver.rb .
 
@@ -11,3 +17,6 @@ install jruby 1.4.0
  % jruby -S spec -c -b spec/basic_spec.rb
    or 
  % jruby -e "ENV['RSPEC']='true'; ENV['AUTOTEST']='true'; system('jruby -S autotest', *ARGV)"
+
+** author
+  takeru : sasaki.takeru@gmail.com, twitter:@urekat (almost japanese!)
