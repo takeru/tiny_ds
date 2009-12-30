@@ -3,7 +3,7 @@
 uname -a
 Darwin tkrmb.local 8.11.1 Darwin Kernel Version 8.11.1: Wed Oct 10 18:23:28 PDT 2007; root:xnu-792.25.20~1/RELEASE_I386 i386 i386
 date +"%Y/%m/%d %H:%M:%S"
-2009/12/28 15:45:05
+2009/12/31 03:13:09
 #-----------------------------
 jruby -v
 jruby 1.4.0 (ruby 1.8.7 patchlevel 174) (2009-11-02 69fbfa3) (Java HotSpot(TM) Client VM 1.6.0_03-p3) [i386-java]
@@ -14,12 +14,12 @@ Java(TM) SE Runtime Environment (build 1.6.0_03-p3-landonf_19_aug_2008_14_55-b00
 Java HotSpot(TM) Server VM (build 1.6.0_03-p3-landonf_19_aug_2008_14_55-b00, mixed mode)
 #-----------------------------
 gem list | grep -E '(appengine|bundler)'
-appengine-jruby-jars (0.0.6, 0.0.5, 0.0.4, 0.0.2)
-appengine-rack (0.0.6, 0.0.5, 0.0.4, 0.0.3, 0.0.2)
-appengine-sdk (1.3.0, 1.2.8, 1.2.6, 1.2.5, 1.2.2)
-appengine-tools (0.0.7, 0.0.6, 0.0.5, 0.0.4, 0.0.2)
-bundler (0.7.2, 0.7.1, 0.6.0)
-google-appengine (0.0.7, 0.0.6, 0.0.5, 0.0.4, 0.0.2)
+appengine-jruby-jars (0.0.6)
+appengine-rack (0.0.6)
+appengine-sdk (1.3.0)
+appengine-tools (0.0.8.pre)
+bundler (0.7.2.ign, 0.7.1, 0.6.0)
+google-appengine (0.0.7)
 #-----------------------------
 jgem list
 addressable (2.1.1)
