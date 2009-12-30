@@ -287,7 +287,7 @@ describe TinyDS::Base do
     end
   end
 
-  describe "query(1)" do
+  describe "query(1) basic" do
     before :all do
       Comment.destroy_all
       raise if Comment.count!=0
@@ -311,7 +311,13 @@ describe TinyDS::Base do
     it "should fetched by eq" do
       Comment.query.filter(:num,   "==", 10).count.should == 8
       Comment.query.filter(:title, "==", "AAA").all.size.should == 12
-      Comment.query.filter(:num, "==", 10).filter(:title, "==", "AAA").all.size.should == 5
+      Comment.query.filter(:num,   "==", 10).filter(:title, "==", "AAA").all.size.should == 5
+    end
+    it "should fetched by eq (hash)" do
+      Comment.query.filter(:num=>10).count.should == 8
+      Comment.query.filter(:title=>"AAA").all.size.should == 12
+      Comment.query.filter(:num=>10).filter(:title=>"AAA").all.size.should == 5
+      Comment.query.filter(:num=>10, :title=>"AAA").all.size.should == 5
     end
     it "should fetched by gt/lt" do
       Comment.query.filter(:num, ">=", 20).count.should == 7
@@ -339,7 +345,7 @@ describe TinyDS::Base do
       end
     end
   end
-  describe "query(2)" do
+  describe "query(2) parent-children" do
     before :all do
       Comment.destroy_all
       raise if Comment.count!=0
@@ -379,7 +385,7 @@ describe TinyDS::Base do
       }
     end
   end
-  describe "query(3)" do
+  describe "query(3) raise" do
     before :all do
       Comment.destroy_all
       raise if Comment.count!=0
@@ -396,6 +402,14 @@ describe TinyDS::Base do
       proc{
         Comment.query.filter(:title, "==", "C1").one
       }.should_not raise_error(AppEngine::Datastore::TooManyResults)
+    end
+    it "should be raised if filter/sort by invalid property name" do
+      proc{
+        Comment.query.filter(:aaaa, "==", 123)
+      }.should raise_error
+      proc{
+        Comment.query.sort(:bbbb)
+      }.should raise_error
     end
   end
 

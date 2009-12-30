@@ -14,15 +14,20 @@ class Query
     @q.set_ancestor(anc)
     self
   end
-  def filter(name, operator, value)
-    # TODO check neme or raise
-    unless @model_class.property_definitions[name.to_sym]
-      raise "unknown property='#{name}'"
+  def filter(*args)
+    if args.size==1 && args.first.kind_of?(Hash)
+      args.first.each do |k,v|
+        filter(k,"==",v)
+      end
+    else
+      name, operator, value = *args
+      @model_class.property_definition(name) # check exist?
+      @q.filter(name, operator, value)
     end
-    @q.filter(name, operator, value)
     self
   end
   def sort(name, dir=:asc)
+    @model_class.property_definition(name) # check exist?
     direction = {
       :asc  => AppEngine::Datastore::Query::ASCENDING,
       :desc => AppEngine::Datastore::Query::DESCENDING

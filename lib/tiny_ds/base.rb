@@ -36,6 +36,10 @@ class Base
     self._property_definitions ||= {}
   end
 
+  def self.property_definition(name)
+    property_definitions[name.to_sym] or raise "unknown property='#{name}'"
+  end
+
   def self.default_attrs
     attrs = {}
     property_definitions.each do |pname,pdef|
@@ -246,20 +250,14 @@ class Base
 
   # set property-value into @entity
   def set_property(k,v)
-    prop_def = self.class.property_definitions[k.to_sym]
-    unless prop_def
-      raise "unknown property name '#{k}'"
-    end
+    prop_def = self.class.property_definition(k)
     @entity[k] = prop_def.to_ds_value(v)
     # todo cache value read/write
   end
 
   # get property-value from @entity
   def get_property(k)
-    prop_def = self.class.property_definitions[k.to_sym]
-    unless prop_def
-      raise "unknown property name '#{k}'"
-    end
+    prop_def = self.class.property_definition(k)
     prop_def.to_ruby_value(@entity[k])
   end
 
