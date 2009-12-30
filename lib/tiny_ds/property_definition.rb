@@ -19,35 +19,47 @@ class PropertyDefinition
     @opts.has_key?(:default)
   end
   def to_ds_value(v)
-    return nil if v.nil?
     case @ptype
     when :string
-      v.to_s
+      v.nil? ? nil : v.to_s
     when :integer
-      v.to_i
+      v.nil? ? nil : v.to_i
     when :text
-      com.google.appengine.api.datastore::Text.new(java.lang.String.new(v))
+      v.nil? ? nil : com.google.appengine.api.datastore::Text.new(v.to_s)
     when :time
-      Time.parse(v.to_s)
-   #when :list
-   #  raise "todo"
+      case v
+      when Time
+        v
+      when NilClass
+        nil
+      else
+        raise "not Time value."
+      end
+    when :list
+      case v
+      when Array
+        v.empty? ? nil : v
+      when NilClass
+        nil
+      else
+        raise "not Array value."
+      end
     else
       raise "unknown property type '#{@ptype}'"
     end
   end
   def to_ruby_value(ds_v)
-    return nil if ds_v.nil?
     case @ptype
     when :string
-      ds_v.to_s
+      ds_v.nil? ? nil : ds_v.to_s
     when :integer
-      ds_v.to_i
+      ds_v.nil? ? nil : ds_v.to_i
     when :text
-        ds_v.to_s
+      ds_v.nil? ? nil : ds_v.to_s
     when :time
-      Time.parse(ds_v.to_s)
-      #when :list
-      #  raise "todo"
+      ds_v.nil? ? nil : ds_v
+    when :list
+      ds_v.nil? ? []  : ds_v.to_a
     else
       raise "unknown property type '#{@ptype}'"
     end

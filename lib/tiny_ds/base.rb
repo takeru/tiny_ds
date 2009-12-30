@@ -3,7 +3,7 @@
 #   validations
 #   associations
 #x   default value
-#   property list
+#x   property list
 #   property Key
 #   property others
 #   nil=>false
@@ -13,7 +13,7 @@
 #   find_by_xxx
 #x   get_by_id(id)         get_by_name(name)         : root entity only!!
 #x   get_by_id(parent, id) get_by_name(parent, name) : ancestor+Kind => key get
-#   Foo.query.filter(:key=>123)
+#x   Foo.query.filter(:key=>123)
 #   Foo.filter(:key=>123)
 #   logger
 #   logging low level API calls.
@@ -251,7 +251,12 @@ class Base
   # set property-value into @entity
   def set_property(k,v)
     prop_def = self.class.property_definition(k)
-    @entity[k] = prop_def.to_ds_value(v)
+    ds_v = prop_def.to_ds_value(v)
+    if ds_v.nil?
+      @entity.removeProperty(k)
+    else
+      @entity[k] = ds_v
+    end
     # todo cache value read/write
   end
 

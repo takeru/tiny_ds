@@ -101,3 +101,43 @@ end
 1:1262154126.195000 countup,test003,1935,20091230_062206,GAE20091230062106-ce3a4ee3-b055-459b-8a1d-44b0a9d7cf17
 1:1262154126.172000 countup,test003,1935,20091230_062206,GAE20091230062138-3c816a23-74d9-4fd8-b070-ec8b153c892d
 =end
+
+
+class Item < TinyDS::Base
+  property :nickname,   :string
+  property :nums,       :list
+end
+get "/list_props" do
+  Item.destroy_all
+  raise "Item.count==#{Item.count}" if Item.count != 0
+  #Item.create(:nums=>[])
+  cmds = <<END
+Item.destroy_all
+Item.create(:nickname=>"A", :nums=>[1,2,3]).inspect
+Item.create(:nickname=>"B", :nums=>[]     ).inspect
+Item.create(:nickname=>"C", :nums=>[nil]  ).inspect
+Item.create(:nickname=>"D", :nums=>nil    ).inspect
+Item.create(:nickname=>"E"                ).inspect
+Item.query.all.collect{|i| i.nickname }.inspect
+Item.count
+Item.query.filter(:nums,"==",      0).collect{|i| i.nickname }.inspect
+Item.query.filter(:nums,"<=",      0).collect{|i| i.nickname }.inspect
+Item.query.filter(:nums,">=",      0).collect{|i| i.nickname }.inspect
+
+Item.query.filter(:nums,"<",-(2**63)).collect{|i| i.nickname }.inspect
+Item.query.filter(:nickname=>"B").one.entity[:nums].inspect
+Item.query.filter(:nickname=>"B").one.entity.has_property(:nums)
+Item.query.filter(:nickname=>"C").one.entity[:nums].inspect
+Item.query.filter(:nickname=>"C").one.entity[:nums].to_a.inspect
+Item.query.filter(:nickname=>"C").one.entity.has_property(:nums)
+Item.query.filter(:nickname=>"D").one.entity[:nums].inspect
+Item.query.filter(:nickname=>"D").one.entity.has_property(:nums)
+Item.query.filter(:nickname=>"E").one.entity[:nums].inspect
+Item.query.filter(:nickname=>"E").one.entity.has_property(:nums)
+END
+  return "<table border=1>" +
+    cmds.collect{|cmd|
+      "<tr><td>#{h(cmd)}</td><td>#{h(eval(cmd))}</td></tr>"
+    }.join +
+    "</table>"
+end

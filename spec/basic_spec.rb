@@ -11,11 +11,18 @@ class Comment < TinyDS::Base
   property :new_at,     :time,    :default=>proc{ Time.now }
   property :updated_at, :time
   property :created_at, :time
+  property :view_at,    :time
 end
 
 class Animal < TinyDS::Base
   property :nickname,   :string
   property :color,      :string
+end
+
+class User < TinyDS::Base
+  property :nickname,   :string
+  property :age,        :integer
+  property :favorites,  :list
 end
 
 describe TinyDS::Base do
@@ -38,7 +45,7 @@ describe TinyDS::Base do
       text.class.should == com.google.appengine.api.datastore.Text
     end
     it "should correct properties count" do
-      Comment.property_definitions.size.should == 7
+      Comment.property_definitions.size.should == 8
     end
     it "should initialized with default value" do
       a = Comment.new
@@ -287,6 +294,58 @@ describe TinyDS::Base do
     end
   end
 
+  describe "auto convert types" do
+    it "should convert to string" do
+      Comment.new(:title => "zzzz").title.should be_kind_of(String)
+      Comment.new(:title => "zzzz").title.should == "zzzz"
+      Comment.new(:title => 123   ).title.should be_kind_of(String)
+      Comment.new(:title => 123   ).title.should == "123"
+      Comment.new(:title => "123" ).title.should be_kind_of(String)
+      Comment.new(:title => "123" ).title.should == "123"
+      Comment.new(:title => nil   ).title.should be_kind_of(NilClass)
+      Comment.new(:title => nil   ).title.should == nil
+      Comment.new(                ).title.should be_kind_of(NilClass)
+      Comment.new(                ).title.should == nil
+    end
+    it "should convert to integer" do
+      Comment.new(:num => "zzzz").num.should be_kind_of(Integer)
+      Comment.new(:num => "zzzz").num.should == 0
+      Comment.new(:num => 123   ).num.should be_kind_of(Integer)
+      Comment.new(:num => 123   ).num.should == 123
+      Comment.new(:num => "123" ).num.should be_kind_of(Integer)
+      Comment.new(:num => "123" ).num.should == 123
+      Comment.new(:num => nil   ).num.should be_kind_of(NilClass)
+      Comment.new(:num => nil   ).num.should == nil
+      Comment.new(              ).num.should be_kind_of(NilClass)
+      Comment.new(              ).num.should == nil
+    end
+    it "should convert to text" do
+      Comment.new(:body => "zzzz").body.should be_kind_of(String)
+      Comment.new(:body => "zzzz").body.should == "zzzz"
+      Comment.new(:body => 123   ).body.should be_kind_of(String)
+      Comment.new(:body => 123   ).body.should == "123"
+      Comment.new(:body => "123" ).body.should be_kind_of(String)
+      Comment.new(:body => "123" ).body.should == "123"
+      Comment.new(:body => nil   ).body.should be_kind_of(NilClass)
+      Comment.new(:body => nil   ).body.should == nil
+      Comment.new(               ).body.should be_kind_of(NilClass)
+      Comment.new(               ).body.should == nil
+    end
+    it "should not convert from str/int to time" do
+      proc{ Comment.new(:view_at => "zzzz"  ) }.should raise_error
+      proc{ Comment.new(:view_at => 123     ) }.should raise_error
+
+      now = Time.now
+      Comment.new(:view_at => now).view_at.should == now
+      Comment.new(:view_at => nil).view_at.should == nil
+      Comment.new(               ).view_at.should == nil
+    end
+    it "should not convert to array" do
+      proc{ User.new(:favorites => "zzzz"  ) }.should raise_error
+      proc{ User.new(:favorites => 123     ) }.should raise_error
+    end
+  end
+
   describe "query(1) basic" do
     before :all do
       Comment.destroy_all
@@ -343,6 +402,13 @@ describe TinyDS::Base do
       Comment.query.sort(:title).sort(:num).all(:offset=>5, :limit=>7).each do |c|
         c.title.should == "AAA"; c.num.should == 50
       end
+    end
+    it "should not indexed nil as exist value" do
+      Comment.destroy_all
+      Comment.create(:num=>nil)
+      Comment.create(         )
+      Comment.count.should == 2
+      Comment.query.filter(:num, "<", 0).count.should == 0
     end
   end
   describe "query(2) parent-children" do
@@ -485,6 +551,98 @@ describe TinyDS::Base do
       a1.body.should  == "XXX"
       a1.num = 777
       a1.num.should == 777
+    end
+  end
+  describe "list property" do
+    before :each do
+      User.destroy_all
+      raise if User.count!=0
+    end
+    it "should stored list of values" do
+      u1 = User.new(:favorites=>["car", "dog", 777])
+      u1.favorites.size.should == 3
+      u1.favorites.should     include("car")
+      u1.favorites.should     include("dog")
+      u1.favorites.should     include(777)
+      u1.favorites.should_not include(666)
+
+      u1.save
+      u1.favorites.size.should == 3
+      u1.favorites.should     include("car")
+      u1.favorites.should     include("dog")
+      u1.favorites.should     include(777)
+      u1.favorites.should_not include(666)
+
+      u1 = User.get(u1.key)
+      u1.favorites.size.should == 3
+      u1.favorites.should     include("car")
+      u1.favorites.should     include("dog")
+      u1.favorites.should     include(777)
+      u1.favorites.should_not include(666)
+    end
+    it "should raise if not array" do
+      proc{
+        User.create(:favorites=>"car")
+      }.should raise_error
+    end
+    it "should found by array item query eq" do
+      u1 = User.create(:favorites=>["car", "dog", 777])
+      u2 = User.create(:favorites=>[       "dog", 777])
+      u3 = User.create(:favorites=>["car",        777])
+      u4 = User.create(:favorites=>["car", "dog"     ])
+      u5 = User.create(:favorites=>["car"            ])
+      u6 = User.create(:favorites=>[       "dog"     ])
+      u7 = User.create(:favorites=>[              777])
+      User.query.filter(:favorites=>"car").all.size.should == 4
+      User.query.filter(:favorites=>"dog").all.size.should == 4
+      User.query.filter(:favorites=> 777 ).all.size.should == 4
+      User.query.filter(:favorites=>"777").all.size.should == 0
+#      User.query.filter(:favorites=>"car", :favorites=>"dog").all.size.should == 2
+#      User.query.filter(:favorites=>"dog", :favorites=> 777 ).all.size.should == 2
+#      User.query.filter(:favorites=>"car", :favorites=> 777 ).all.size.should == 2
+      User.query.filter(:favorites=>"car").filter(:favorites=>"dog").all.size.should == 2
+      User.query.filter(:favorites=>"dog").filter(:favorites=> 777 ).all.size.should == 2
+      User.query.filter(:favorites=>"car").filter(:favorites=> 777 ).all.size.should == 2
+      User.query.filter(:favorites=>"car").filter(:favorites=>"dog").filter(:favorites=>777).all.size.should == 1
+    end
+    it "should be empty list or nil" do
+      u0 = User.create()
+      u1 = User.create(:favorites=>[])
+      u2 = User.create(:favorites=>nil)
+      User.query.filter(:favorites, "==", 0).count.should == 0
+      User.query.filter(:favorites, "<=", 0).count.should == 0
+      User.query.filter(:favorites, ">=", 0).count.should == 0
+
+      User.new(:favorites=>[] ).favorites.should == []
+      User.new(:favorites=>nil).favorites.should == []
+      User.new(               ).favorites.should == []
+    end
+    it "should found by array item query range" do
+      u0 = User.create(:favorites=>[          ])
+      u1 = User.create(:favorites=>[10, 20, 30])
+      u2 = User.create(:favorites=>[    20, 30])
+      u3 = User.create(:favorites=>[10,     30])
+      u4 = User.create(:favorites=>[10, 20    ])
+      u5 = User.create(:favorites=>[10        ])
+      u6 = User.create(:favorites=>[    20    ])
+      u7 = User.create(:favorites=>[        30])
+
+      User.query.filter(:favorites, ">=",  0).count.should == 7
+
+      User.query.filter(:favorites, "<=", 10).count.should == 4
+      User.query.filter(:favorites, "<",  10).count.should == 0
+      User.query.filter(:favorites, ">=", 10).count.should == 7
+      User.query.filter(:favorites, ">",  10).count.should == 6
+
+      User.query.filter(:favorites, "<=", 15).count.should == 4
+      User.query.filter(:favorites, "<",  15).count.should == 4
+      User.query.filter(:favorites, ">=", 15).count.should == 6
+      User.query.filter(:favorites, ">",  15).count.should == 6
+
+      User.query.filter(:favorites, "<=", 20).count.should == 6
+      User.query.filter(:favorites, "<",  20).count.should == 4
+      User.query.filter(:favorites, ">=", 20).count.should == 6
+      User.query.filter(:favorites, ">",  20).count.should == 4
     end
   end
 end
