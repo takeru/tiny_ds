@@ -8,4 +8,5 @@ gem 'appengine-rack'
 gem 'appengine-apis'
 # gem 'appengine-sdk'
 gem 'sinatra'
-gem 'dm-appengine'
+#gem 'dm-appengine'
+
