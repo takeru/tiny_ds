@@ -15,6 +15,10 @@ class Query
     self
   end
   def filter(name, operator, value)
+    # TODO check neme or raise
+    unless @model_class.property_definitions[name.to_sym]
+      raise "unknown property='#{name}'"
+    end
     @q.filter(name, operator, value)
     self
   end

@@ -27,7 +27,7 @@ class Base
   def self.property(pname, ptype, opts={})
     pname = pname.to_sym
     if RESERVED_PROPERTY_NAME.include?(pname)
-      raise "property name=#{pname} is reserved."
+      raise "property name '#{pname}' is reserved."
     end
     property_definitions[pname] = PropertyDefinition.new(pname, ptype, opts)
   end
@@ -84,7 +84,7 @@ class Base
       if m.kind_of?(Base)
         m.key
       else
-        raise "unknown type m=#{m.class}/#{m.inspect}"
+        raise "unknown key type #{m.class}/#{m.inspect}"
       end
     end
   end
@@ -248,7 +248,7 @@ class Base
   def set_property(k,v)
     prop_def = self.class.property_definitions[k.to_sym]
     unless prop_def
-      raise "unknown property=#{k}"
+      raise "unknown property name '#{k}'"
     end
     @entity[k] = prop_def.to_ds_value(v)
     # todo cache value read/write
@@ -258,7 +258,7 @@ class Base
   def get_property(k)
     prop_def = self.class.property_definitions[k.to_sym]
     unless prop_def
-      raise "unknown property=#{k}"
+      raise "unknown property name '#{k}'"
     end
     prop_def.to_ruby_value(@entity[k])
   end

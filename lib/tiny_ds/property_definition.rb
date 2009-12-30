@@ -32,7 +32,7 @@ class PropertyDefinition
    #when :list
    #  raise "todo"
     else
-      raise "unknown type @ptype=#{@ptype}"
+      raise "unknown property type '#{@ptype}'"
     end
   end
   def to_ruby_value(ds_v)
@@ -49,7 +49,7 @@ class PropertyDefinition
       #when :list
       #  raise "todo"
     else
-      raise "unknown type @ptype=#{@ptype}"
+      raise "unknown property type '#{@ptype}'"
     end
   end
 end
