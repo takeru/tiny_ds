@@ -65,10 +65,13 @@ end
 def countup(counter_name)
   count = $mc.incr(counter_name)
   if count.nil?
-    cl = CountLog.query.filter(:counter_name, "==", counter_name).sort(:created_ms, :desc).all(:limit=>1).first
-    count = cl.nil? ? 0 : cl.value
-    $mc.set(counter_name, count)
-    log("counter_loaded,#{counter_name},#{count}")
+    global_synchronize("mutex_#{counter_name}") do
+      break unless $mc.get(counter_name).nil? # other instance restored 'count'.
+      cl = CountLog.query.filter(:counter_name=>counter_name).sort(:created_ms, :desc).all(:limit=>1).first
+      count = cl.nil? ? 0 : cl.value
+      $mc.set(counter_name, count)
+      log("counter_loaded,#{counter_name},#{count}")
+    end
     return countup(counter_name)
   end
   CountLog.create!(:counter_name=>counter_name, :value=>count, :created_ms=>global_timestamp)
@@ -81,6 +84,42 @@ def global_timestamp
   $mc.set("global_timestamp", t)
   t
 end
+
+# [memcache mutex]
+# http://d.hatena.ne.jp/kazunori_279/20091005/1254707722
+def global_synchronize(mutex_name, retries=10, sleep_sec=0.5)
+  (1+retries).times{
+    unless global_acquire_lock(mutex_name)
+      sleep(sleep_sec)
+      next
+    end
+    ret = nil
+    begin
+      ret = yield
+    ensure
+      global_release_lock(mutex_name)
+    end
+    return ret
+  }
+  raise "could not get lock!!"
+end
+def global_acquire_lock(mutex_name)
+  count = $mc.incr(mutex_name)
+  if count.nil?
+    $mc.set(mutex_name, 0)
+    return false
+  end
+  if count==1
+    return true
+  else
+    $mc.decr(mutex_name)
+    return false
+  end
+end
+def global_release_lock(mutex_name)
+  $mc.decr(mutex_name)
+end
+
 def log(s)
   s << ",#{Time.now.strftime('%Y%m%d_%H%M%S')},#{$gae_instance_guid}"
 # $logger.warn s
@@ -103,6 +142,8 @@ end
 =end
 
 
+
+# [list_prop]
 class Item < TinyDS::Base
   property :nickname,   :string
   property :nums,       :list
