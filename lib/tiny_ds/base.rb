@@ -7,6 +7,7 @@
 #   property Key
 #   property others
 #   nil=>false
+#   index=>false setUnindexedProperty
 #   version
 #   schema_version
 #x   new_record?
