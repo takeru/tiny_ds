@@ -1,5 +1,5 @@
 require 'sinatra'
-require 'lib/tiny_ds'
+require 'tiny_ds'
 require 'appengine-apis/memcache'
 require 'appengine-apis/logger'
 
