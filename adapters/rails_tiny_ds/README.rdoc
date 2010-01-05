@@ -1,0 +1,22 @@
+
+This is a Rails 2.3.5 integration plugin for TinyDS,
+that provides ActiveRecord method calls for generated scaffold.
+
+== Setup
+
+Add the following line to your projects environment.rb
+
+config.gem "rails_tiny_ds"
+
+== Generators
+
+We provide two rake tasks:
+
+script/generate td_model
+script/generate rspec_td_model
+
+These are based on generators in rails_datamapper gem
+
+--
+
+Author: John Woodell, woodie@netpress.com

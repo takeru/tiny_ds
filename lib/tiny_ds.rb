@@ -6,6 +6,7 @@ require File.dirname(__FILE__)+"/tiny_ds/base.rb"
 require File.dirname(__FILE__)+"/tiny_ds/query.rb"
 require File.dirname(__FILE__)+"/tiny_ds/validations.rb"
 require File.dirname(__FILE__)+"/tiny_ds/base_tx.rb"
+require File.dirname(__FILE__)+"/tiny_ds/version.rb"
 
 module TinyDS
   def self.tx(retries=0, &block)

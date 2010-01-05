@@ -1,0 +1,30 @@
+require 'rubygems'
+require 'rake/gempackagetask'
+require File.dirname(__FILE__) + '/../../lib/tiny_ds/version'
+
+RAILS_VERSION = "2.3.5"
+
+spec = Gem::Specification.new do |s|
+  s.name = "rails_tiny_ds"
+  s.version = TinyDS::VERSION
+  s.platform = Gem::Platform::RUBY
+  s.has_rdoc = false
+  s.extra_rdoc_files = ["README.rdoc", "LICENSE"]
+  s.description = "A Rails integration plugin for TinyDS"
+  s.summary = "This is an integration plugin for TinyDS, that provides " +
+      "ActiveRecord method calls for Rails #{RAILS_VERSION} generated scaffold"
+  s.authors = ["John Woodell", "Takeru Sasaki"]
+  s.email = ["woodie@netpress.com", "sasaki.takeru@gmail.com"]
+  s.homepage = "http://github.com/takeru/tiny_ds/adapters/rails_tiny_ds"
+  s.require_path = 'lib'
+  s.files = %w(LICENSE README.rdoc Rakefile) +
+            Dir.glob("generators/**/*") + Dir.glob("lib/**/*") 
+  s.add_dependency 'tiny_ds', "#{TinyDS::VERSION}"
+  s.add_dependency 'rails', "#{RAILS_VERSION}"
+end
+
+task :default => :gem
+
+Rake::GemPackageTask.new(spec) do |pkg|
+  pkg.gem_spec = spec
+end
