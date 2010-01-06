@@ -1,7 +1,7 @@
 = Rails TinyDS Plugin
 
-This is a Rails 2.3.5 integration plugin for TinyDS,
-that provides ActiveRecord method calls for generated scaffold.
+This is an integration plugin for TinyDS that provides certain
+ActiveRecord method calls for Rails 2.3.5 generated scaffold.
 
 == Work with AR Scaffold
 
