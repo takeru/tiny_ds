@@ -18,6 +18,12 @@ class PropertyDefinition
   def has_default?
     @opts.has_key?(:default)
   end
+
+  # default is true
+  def index?
+    (!@opts.has_key?(:index)) || @opts[:index]
+  end
+
   def to_ds_value(v)
     case @ptype
     when :string

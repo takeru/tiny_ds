@@ -43,7 +43,11 @@ class Query
     @q.count
   end
   def one #todo(tx=nil)
-    @model_class.new_from_entity(@q.entity)
+    if @q.entity
+      @model_class.new_from_entity(@q.entity)
+    else
+      nil
+    end
   end
   def all(opts={}) #todo(tx=nil)
     models = []

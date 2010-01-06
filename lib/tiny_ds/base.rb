@@ -7,7 +7,7 @@
 #   property Key
 #   property others
 #   nil=>false
-#   index=>false setUnindexedProperty
+#x   index=>false setUnindexedProperty
 #   version
 #   schema_version
 #x   new_record?
@@ -104,8 +104,7 @@ class Base
 
   # Foo.new
   def initialize(attrs={}, opts={})
-    @entity = opts.delete(:entity)
-    unless @entity
+    unless opts.has_key?(:entity)
       if opts[:parent] && opts[:parent].kind_of?(Base)
         opts = opts.dup
         opts[:parent] = opts[:parent].entity
@@ -114,6 +113,7 @@ class Base
       self.attributes = self.class.default_attrs.merge(attrs || {})
       @new_record = true
     else
+      @entity = opts.delete(:entity) or raise "opts[:entity] is nil."
       @new_record = false
     end
   end
@@ -257,7 +257,11 @@ class Base
     if ds_v.nil?
       @entity.removeProperty(k)
     else
-      @entity[k] = ds_v
+      if prop_def.index?
+        @entity[k] = ds_v
+      else
+        @entity.setUnindexedProperty(k, ds_v)
+      end
     end
     # todo cache value read/write
   end

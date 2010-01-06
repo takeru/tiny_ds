@@ -16,7 +16,9 @@ end
 
 class Animal < TinyDS::Base
   property :nickname,   :string
-  property :color,      :string
+  property :color,      :string,  :index=>true
+  property :memo,       :string,  :index=>false
+  property :age,        :integer, :index=>nil
 end
 
 class User < TinyDS::Base
@@ -54,6 +56,20 @@ describe TinyDS::Base do
     it "should default by proc" do
       a = Comment.new
       (Time.now-a.new_at).should <= 2.0
+    end
+    it "should not index if :index=>false" do
+      a = Animal.create({:nickname=>"pochi", :color=>"white", :memo=>"POCHI", :age=>5})
+      Animal.query.filter(:nickname, "==", "pochi").one.memo.should == a.memo
+      Animal.query.filter(:color,    "==", "white").one.memo.should == a.memo
+      Animal.query.filter(:memo,     "==", "POCHI").one.should be_nil
+      Animal.query.filter(:age,      "==", 5      ).one.should be_nil
+    end
+    it "should be saved large unindexed list props" do
+      favs = (0...10000).to_a
+      # should be raised. test env skips index count limit=5000???
+      User.create({:favorites=>favs, :nickname=>"john"})
+      u = User.query.filter(:nickname=>"john").one
+      u.favorites.size.should == 10000
     end
   end
 
@@ -459,6 +475,7 @@ describe TinyDS::Base do
       child2  = Comment.create({:title=>"C2", :num=>10})
     end
     it "should raise error from one" do
+      Comment.query.filter(:num=>999).one.should == nil
       proc{
         Comment.query.one
       }.should      raise_error(AppEngine::Datastore::TooManyResults)
