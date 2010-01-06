@@ -1,5 +1,6 @@
 require 'rails_generator/generators/components/model/model_generator'
 require 'active_record'
+require 'tiny_ds/base'
  
 class TdModelGenerator < ModelGenerator
  

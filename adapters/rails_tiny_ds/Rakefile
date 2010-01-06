@@ -15,7 +15,7 @@ spec = Gem::Specification.new do |s|
       "ActiveRecord method calls for Rails #{RAILS_VERSION} generated scaffold"
   s.authors = ["John Woodell", "Takeru Sasaki"]
   s.email = ["woodie@netpress.com", "sasaki.takeru@gmail.com"]
-  s.homepage = "http://github.com/takeru/tiny_ds/" +
+  s.homepage = "http://github.com/woodie/tiny_ds/" +
       "tree/master/adapters/rails_tiny_ds"
   s.require_path = 'lib'
   s.files = %w(LICENSE README.rdoc Rakefile) +
