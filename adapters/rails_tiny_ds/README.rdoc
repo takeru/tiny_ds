@@ -2,18 +2,28 @@
 This is a Rails 2.3.5 integration plugin for TinyDS,
 that provides ActiveRecord method calls for generated scaffold.
 
-== Setup
+== Work with AR Scaffold
 
-Add the following line to your projects environment.rb
+Add the following to your Gemfile
 
-config.gem "rails_tiny_ds"
+ gem 'rails_tiny_ds'
 
-== Generators
+Add the following to the initializer in config/environment.rb
 
-We provide two rake tasks:
+ require 'tind_ds'
+ require 'rails_tiny_ds'
 
-script/generate td_model
-script/generate rspec_td_model
+== Generate TinyDS Models
+
+Install as an MRI gem to use these rake tasks:
+
+ script/generate td_model
+ script/generate rspec_td_model
+
+Example:
+
+ ./script/generate td_model article title:string summary:text -f
+ ./script/generate td_model author name:stringage:integer —skip-timestamps
 
 These are based on generators in rails_datamapper gem
 
