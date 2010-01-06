@@ -1,3 +1,4 @@
+= Rails TinyDS Plugin
 
 This is a Rails 2.3.5 integration plugin for TinyDS,
 that provides ActiveRecord method calls for generated scaffold.
@@ -10,7 +11,7 @@ Add the following to your Gemfile
 
 Add the following to the initializer in config/environment.rb
 
- require 'tind_ds'
+ require 'tiny_ds'
  require 'rails_tiny_ds'
 
 == Generate TinyDS Models
@@ -23,10 +24,9 @@ Install as an MRI gem to use these rake tasks:
 Example:
 
  ./script/generate td_model article title:string summary:text -f
- ./script/generate td_model author name:stringage:integer —skip-timestamps
+ ./script/generate td_model author name:string age:integer -—skip-timestamps
 
 These are based on generators in rails_datamapper gem
 
 --
-
 Author: John Woodell, woodie@netpress.com
