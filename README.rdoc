@@ -24,6 +24,5 @@ install jruby 1.4.0
 == demo site
 Rubyist Social Graph : http://rubyist-sg.appspot.com/ is running with GAE/JRuby+Rails2.3.5+TinyDS.
 
---
-Author:
-takeru, sasaki.takeru@gmail.com, twitter:@urekat (almost japanese!), blog:http://d.hatena.ne.jp/urekat
+== author
+takeru: sasaki.takeru@gmail.com, twitter:@urekat (almost japanese!), blog:http://d.hatena.ne.jp/urekat
