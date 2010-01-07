@@ -1,3 +1,3 @@
 module TinyDS
-  VERSION = '0.0.3_pre'.freeze
+  VERSION = '0.0.3.pre'.freeze
 end

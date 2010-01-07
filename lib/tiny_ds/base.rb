@@ -18,6 +18,8 @@
 #   Foo.filter(:key=>123)
 #   logger
 #   logging low level API calls.
+#   create({...}, {:name_prefix=>"u"}) => prefix+allocate_id
+#   __key__ range query
 
 require "time"
 
@@ -94,6 +96,22 @@ class Base
       end
     end
   end
+
+  # KeyRange allocateIds(java.lang.String kind, long num)
+  def self.allocate_ids(num)
+    AppEngine::Datastore.allocate_ids(kind, num) # KeyRange
+  end
+  def self.allocate_id
+    allocate_ids(1).start # Key
+  end
+
+  # KeyRange allocateIds(Key parent, java.lang.String kind, long num)
+#  def allocate_ids(kind, num)
+#    todo
+#  end
+#  def allocate_id(kind)
+#    todo
+#  end
 
   # Foo.create({:title=>"hello",...}, :parent=>aaa, :id=>bbb, :name=>ccc, :key=>...)
   def self.create(attrs={}, opts={})

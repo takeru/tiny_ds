@@ -73,7 +73,24 @@ describe TinyDS::Base do
     end
   end
 
-  describe "key" do 
+  describe "allocate_ids" do
+    it "should be allocated keys" do
+      kr = User.allocate_ids(10)
+      kr.should be_kind_of(Java::ComGoogleAppengineApiDatastore::KeyRange)
+      (kr.end.id-kr.start.id).should == 10-1
+      kr.each do |k|
+        k.should be_kind_of(AppEngine::Datastore::Key)
+        k.inspect.should match(/^User\(\d+\)$/)
+      end
+    end
+    it "should be allocate a id" do
+      k0 = User.allocate_id
+      k0.should be_kind_of(AppEngine::Datastore::Key)
+      k0.inspect.should match(/^User\(\d+\)$/)
+    end
+  end
+
+  describe "create with key" do
     it "should be got id/name" do
       k1 = AppEngine::Datastore::Key.from_path("Com", 9999)
       a1 = Comment.create({:title=>"ccccc"}, :key=>k1)
