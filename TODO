@@ -1,0 +1,22 @@
+# TODO
+#   callback before/after
+#   validations
+#   associations
+#x   default value
+#x   property list
+#   property Key
+#   property others
+#   nil=>false
+#x   index=>false setUnindexedProperty
+#   version
+#   schema_version
+#x   new_record?
+#   find_by_xxx
+#x   get_by_id(id)         get_by_name(name)         : root entity only!!
+#x   get_by_id(parent, id) get_by_name(parent, name) : ancestor+Kind => key get
+#x   Foo.query.filter(:key=>123)
+#   Foo.filter(:key=>123)
+#   logger
+#   logging low level API calls.
+#   create({...}, {:name_prefix=>"u"}) => prefix+allocate_id
+#   __key__ range query

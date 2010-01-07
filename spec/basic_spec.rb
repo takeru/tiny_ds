@@ -37,9 +37,77 @@ describe TinyDS::Base do
     Comment.kind.should == "Comment"
   end
 
-  #describe "tx" do
-  #  # todo
-  #end
+  describe "tx" do
+    it "should retried if concurrent modify"
+    it "should not overwrite properties modified by other tx"
+    it "should not retry when application exception raised"
+  end
+
+  describe "instance tx_update" do
+    it "should updated with tx(attrs)" do
+      c0 = Comment.create(:body=>"hello")
+      c1 = Comment.get(c0.key)
+      c1.body.should == c0.body
+      c2 = c1.tx_update(:body=>"HELLO")
+      c2.body.should == "HELLO"
+      c1.body.should == c0.body # should not changed! BUT I WANT TO BE CHANGED
+      c3 = Comment.get(c0.key)
+      c3.body.should == "HELLO"
+    end
+    it "should updated with tx(block)" do
+      c0 = Comment.create(:body=>"hello")
+      c1 = Comment.get(c0.key)
+      c1.body.should == c0.body
+      c2 = c1.tx_update{|c|
+        c.body = "HELLO"
+      }
+      c2.body.should == "HELLO"
+      c1.body.should == c0.body # should not changed!
+      c3 = Comment.get(c0.key)
+      c3.body.should == "HELLO"
+    end
+    it "should updated with tx(attrs,block)" do
+      c0 = Comment.create(:body=>"hello", :title=>"world", :num=>10)
+      c1 = Comment.get(c0.key)
+      c1.body.should  == c0.body
+      c1.title.should == c0.title
+      c1.num.should   == c0.num
+      c2 = c1.tx_update(:title=>"WORLD", :num=>20){|c|
+        c.body = "HELLO"
+        c.num  = 30
+      }
+      c2.body.should  == "HELLO"
+      c2.title.should == "WORLD"
+      c2.num.should   == 30
+      c1.body.should  == c0.body  # should not changed!
+      c1.title.should == c0.title # should not changed!
+      c1.num.should   == c0.num   # should not changed!
+      c3 = Comment.get(c0.key)
+      c3.body.should  == "HELLO"
+      c3.title.should == "WORLD"
+      c3.num.should   == 30
+    end
+    it "should retried if concurrent modify" do
+      c0 = Comment.create(:body=>"hello", :num=>0)
+      c1 = Comment.get(c0.key)
+      c1.body.should == c0.body
+      loop_count = 0
+      c2 = c1.tx_update(10){|c|
+        loop_count += 1
+        c.body += " world"
+        if loop_count<=5
+          # modify entity by other tx
+          TinyDS.tx{ com = Comment.get(c0.key); com.num+=1; com.save; }
+        end
+      }
+      loop_count.should == 6
+      c2.num.should  == 5
+      c2.body.should == "hello world" # should not be "hello world world world..."
+      c1.body.should == c0.body # should not be changed!
+    end
+    it "should not overwrite properties modified by other tx"
+    it "should not retry when application exception raised"
+  end
 
   describe :property_definitions do
     it "should convert to Text" do

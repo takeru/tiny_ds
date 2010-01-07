@@ -1,25 +1,29 @@
-* TinyDS -- tiny datastore library for GAE/JRuby
-  github: http://github.com/takeru/tiny_ds
+= TinyDS -- tiny datastore library for GAE/JRuby
+github: http://github.com/takeru/tiny_ds
 
- - CRUD like a ActiveRecord or DataMapepr
- - set parent, key, id, name, and find by these, YES entity-group-transaction!!
- - BASE transaction : http://blog.notdot.net/2009/9/Distributed-Transactions-on-App-Engine
- - query : very thin wrapper of low level API.
- - Shout demo app. (sinatra)
- - some specs..
+- CRUD like a ActiveRecord or DataMapepr
+- set parent, key, id, name, and find by these, YES entity-group-transaction!!
+- BASE transaction : http://blog.notdot.net/2009/9/Distributed-Transactions-on-App-Engine
+- query : very thin wrapper of low level API.
+- Shout demo app. (sinatra)
+- some specs..
   
-** run shout demo
+== run example
+ % examples/basic
  % dev_appserver.rb .
 
-** how to run specs
+== how to run specs
 install jruby 1.4.0
- % source set_classpath_for_jruby.sh (set classpath, please read spec/spec_helper.rb)
+ % cd tiny_ds
+ % source examples/basic/set_classpath_for_jruby.sh
+   (set classpath, please read spec/spec_helper.rb)
  % jruby -S spec -c -b spec/basic_spec.rb
-   or 
+   or
  % jruby -e "ENV['RSPEC']='true'; ENV['AUTOTEST']='true'; system('jruby -S autotest', *ARGV)"
 
-** demo
+== demo site
 Rubyist Social Graph : http://rubyist-sg.appspot.com/ is running with GAE/JRuby+Rails2.3.5+TinyDS.
 
-** author
-  takeru : sasaki.takeru@gmail.com, twitter:@urekat (almost japanese!), blog:http://d.hatena.ne.jp/urekat
+--
+Author:
+takeru, sasaki.takeru@gmail.com, twitter:@urekat (almost japanese!), blog:http://d.hatena.ne.jp/urekat
