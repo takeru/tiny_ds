@@ -71,4 +71,16 @@ describe "transaction" do
     dsc.should == com.google.appengine.api.datastore.DatastoreConfig::DEFAULT
     dsc.getImplicitTransactionManagementPolicy.should == com.google.appengine.api.datastore.ImplicitTransactionManagementPolicy::NONE
   end
+
+  it "should be work tx many settings."
+=begin
+Policy    : AUTO or NONE
+currentTx : nil  or exist
+method    : put(ent) or put(tx, ent) or put(nil, ent)
+12 patterns.
+put([e1,e2])
+=end
+
 end
+
+

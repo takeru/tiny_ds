@@ -1,9 +1,6 @@
-#require File.dirname(File.expand_path(__FILE__)) + '/spec_helper.rb'
-
 require File.dirname(__FILE__) + '/spec_helper'
 
 class Comment < TinyDS::Base
-  #property :ekey, String, :key=>true
   property :num,        :integer
   property :title,      :string
   property :body,       :text

@@ -20,3 +20,4 @@
 #   logging low level API calls.
 #   create({...}, {:name_prefix=>"u"}) => prefix+allocate_id
 #   __key__ range query
+#   support reload! on script/console
