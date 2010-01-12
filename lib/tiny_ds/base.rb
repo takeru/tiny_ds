@@ -4,7 +4,7 @@ module TinyDS
 class Base
   class << self; attr_accessor :_property_definitions; end
   RESERVED_PROPERTY_NAME = [:id, :name, :key, :entity, :parent_key, :parent]
-  VALID_PROPERTY_TYPE = [:string, :integer, :text, :time, :list]
+  VALID_PROPERTY_TYPE = [:string, :integer, :float, :text, :time, :list]
   def self.property(pname, ptype, opts={})
     pname = pname.to_sym
     if RESERVED_PROPERTY_NAME.include?(pname)

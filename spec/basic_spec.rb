@@ -6,6 +6,7 @@ class Comment < TinyDS::Base
   property :body,       :text
   property :flag,       :integer, :default=>5
   property :new_at,     :time,    :default=>proc{ Time.now }
+  property :rate,       :float
   property :updated_at, :time
   property :created_at, :time
   property :view_at,    :time
@@ -22,6 +23,7 @@ class User < TinyDS::Base
   property :nickname,   :string
   property :age,        :integer
   property :favorites,  :list
+  property :height,     :float
 end
 
 describe TinyDS::Base do
@@ -112,7 +114,7 @@ describe TinyDS::Base do
       text.class.should == com.google.appengine.api.datastore.Text
     end
     it "should correct properties count" do
-      Comment.property_definitions.size.should == 8
+      Comment.property_definitions.size.should == 9
     end
     it "should initialized with default value" do
       a = Comment.new
@@ -417,6 +419,18 @@ describe TinyDS::Base do
       Comment.new(              ).num.should be_kind_of(NilClass)
       Comment.new(              ).num.should == nil
     end
+    it "should convert to float" do
+      User.new(:height => "zzzz" ).height.should be_kind_of(Float)
+      User.new(:height => "zzzz" ).height.should be_close(0.0, 0.00001)
+      User.new(:height => 123.5  ).height.should be_kind_of(Float)
+      User.new(:height => 123.5  ).height.should be_close(123.5, 0.00001)
+      User.new(:height => "123.5").height.should be_kind_of(Float)
+      User.new(:height => "123.5").height.should be_close(123.5, 0.00001)
+      User.new(:height => nil    ).height.should be_kind_of(NilClass)
+      User.new(:height => nil    ).height.should == nil
+      User.new(                  ).height.should be_kind_of(NilClass)
+      User.new(                  ).height.should == nil
+    end
     it "should convert to text" do
       Comment.new(:body => "zzzz").body.should be_kind_of(String)
       Comment.new(:body => "zzzz").body.should == "zzzz"
@@ -448,15 +462,20 @@ describe TinyDS::Base do
     before :all do
       Comment.destroy_all
       raise if Comment.count!=0
+      rate = -1.0
       3.times do
-        Comment.create(:num=>10, :title=>"BBB")
+        Comment.create(:num=>10, :title=>"BBB", :rate=>rate)
+        rate += 0.1
       end
       5.times do
-        Comment.create(:num=>10, :title=>"AAA")
+        Comment.create(:num=>10, :title=>"AAA", :rate=>rate)
+        rate += 0.1
       end
       7.times do
-        Comment.create(:num=>50, :title=>"AAA")
+        Comment.create(:num=>50, :title=>"AAA", :rate=>rate)
+        rate += 0.1
       end
+      # -1.0,-0.9,...,0.0,0.1,....,0.3,0.4
     end
     it "should fetched all" do
       Comment.query.count.should == 15
@@ -481,6 +500,15 @@ describe TinyDS::Base do
       Comment.query.filter(:num, "<=", 20).count.should == 8
       Comment.query.filter(:num, ">=", 20).all.all?{|c| c.num==50 }.should be_true
       Comment.query.filter(:num, "<=", 20).all.all?{|c| c.num==10 }.should be_true
+    end
+    it "should be fetched by float" do
+      Comment.query.filter(:rate, "<", -0.01).count.should == 10
+      Comment.query.filter(:rate, ">", -0.01).count.should ==  5
+      Comment.query.filter(:rate, "<",  0.01).count.should == 11
+      Comment.query.filter(:rate, ">",  0.01).count.should ==  4
+
+      Comment.query.filter(:rate, ">",  0.01).filter(:rate, "<", 0.21).count.should == 2
+      Comment.query.filter(:rate, ">",  0.01).filter(:rate, "<", 0.09).count.should == 0
     end
     it "should be sorted" do
       comments = Comment.query.sort(:title).sort(:num).all
@@ -508,6 +536,7 @@ describe TinyDS::Base do
       Comment.count.should == 2
       Comment.query.filter(:num, "<", 0).count.should == 0
     end
+    it "should return 1000+ count2"
   end
   describe "query(2) parent-children" do
     before :all do
@@ -540,7 +569,7 @@ describe TinyDS::Base do
           c.parent_key.to_s.should == parent.key.to_s
         end
       }
-      Comment.query.                     filter(:num, "==", 10).count.should == 3
+      Comment.query.                 filter(:num, "==", 10).count.should == 3
       Comment.query.ancestor(parent).filter(:num, "==", 10).count.should == 2
       Comment.query.ancestor(parent).filter(:num, "==", 10).each{|c| # [C1,C2]
         c.key.inspect.index(parent.key.inspect).should == 0

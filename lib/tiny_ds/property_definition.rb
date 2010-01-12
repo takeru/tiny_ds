@@ -30,6 +30,8 @@ class PropertyDefinition
       v.nil? ? nil : v.to_s
     when :integer
       v.nil? ? nil : v.to_i
+    when :float
+      v.nil? ? nil : v.to_f
     when :text
       v.nil? ? nil : com.google.appengine.api.datastore::Text.new(v.to_s)
     when :time
@@ -60,6 +62,8 @@ class PropertyDefinition
       ds_v.nil? ? nil : ds_v.to_s
     when :integer
       ds_v.nil? ? nil : ds_v.to_i
+    when :float
+      ds_v.nil? ? nil : ds_v.to_f
     when :text
       ds_v.nil? ? nil : ds_v.to_s
     when :time

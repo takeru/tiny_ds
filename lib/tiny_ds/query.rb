@@ -42,6 +42,24 @@ class Query
   def count #todo(tx=nil)
     @q.count
   end
+  def count2
+    _count = 0
+    max_key = nil
+    loop do
+      q = @q.clone # or ruby dup
+      q.filter(:__key__, ">", max_key) if max_key
+      q.sort(:__key__)
+      q.java_query.setKeysOnly
+      entries = q.fetch(:limit=>1000).to_a
+      #p ["entries=", entries.collect{|e| e.key }]
+      c = entries.size
+      break if c==0
+      _count += c
+      max_key = entries.last.key
+      #p ["max_key=", max_key]
+    end
+    _count
+  end
   def one #todo(tx=nil)
     if @q.entity
       @model_class.new_from_entity(@q.entity)
