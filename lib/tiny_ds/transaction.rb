@@ -14,13 +14,24 @@ module TinyDS
       raise ArgumentError if !block_given? && attrs.nil?
       obj = nil
       TinyDS.tx(retries) do
-        obj = self.class.get(self.key)
-        # raise if obj.version != self.version
+        obj = get_self_and_check_lock_version
         obj.attributes = attrs if attrs
         yield(obj) if block_given?
         obj.save!
       end
       obj
+    end
+    def get_self_and_check_lock_version
+      obj = self.class.get(self.key)
+      if self.class.has_property?(:lock_version)
+        if obj.lock_version != self.lock_version
+          raise StaleObjectError.new
+        end
+        obj.lock_version += 1
+      end
+      obj
+    end
+    class StaleObjectError < StandardError
     end
   end
 end
