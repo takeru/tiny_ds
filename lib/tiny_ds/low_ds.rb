@@ -57,11 +57,21 @@ module LowDS
           when String; KeyFactory.stringToKey(key)
           else raise "invalid key type key.class=[#{key.class}] key.inspect=[#{key.inspect}]"
           end
-    ent = AppEngine::Datastore.get(key)
-    if opts[:kind]
-      raise "kind missmatch. #{ent.kind}!=#{opts[:kind]}" if ent.kind!=opts[:kind]
+
+    retries = opts[:retries] || 20
+    while 0<=retries
+      retries -= 1
+      begin
+        ent = AppEngine::Datastore.get(key)
+        if opts[:kind]
+          raise "kind missmatch. #{ent.kind}!=#{opts[:kind]}" if ent.kind!=opts[:kind]
+        end
+        return ent
+      rescue AppEngine::Datastore::Timeout => ex
+        raise ex if retries<=0
+        sleep(0.001)
+      end
     end
-    ent
   end
 
   # update
