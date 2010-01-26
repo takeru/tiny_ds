@@ -772,5 +772,50 @@ describe TinyDS::Base do
       User.query.filter(:favorites, ">=", 20).count.should == 6
       User.query.filter(:favorites, ">",  20).count.should == 4
     end
+    it "should be default is []" do
+      u1 = User.new
+      u1.favorites.should == []
+      u1.save
+      u1.favorites.should == []
+      u1 = User.get(u1.key)
+      u1.favorites.should == []
+    end
+    it "should be added" do
+      u1 = User.new
+      u1.favorites.size.should == 0
+      u1.favorites << "DOG"
+      u1.favorites.size.should == 0 #1
+      u1.favorites << "CAT"
+      u1.favorites.size.should == 0 #2
+
+      u1.favorites += ["DOG"]
+      u1.favorites.size.should == 1
+      u1.favorites += ["CAT"]
+      u1.favorites.size.should == 2
+      u1.save
+
+      u1 = User.get(u1.key)
+      u1.favorites.sort.should == ["CAT","DOG"]
+    end
+    it "should be removed" do
+      u1 = User.new
+      u1.favorites += ["CAT","DOG"]
+      u1.save
+
+      u1 = User.get(u1.key)
+      u1.favorites.sort.should == ["CAT","DOG"]
+      u1.favorites -= ["DOG"]
+      u1.favorites.sort.should == ["CAT"]
+      u1.save
+
+      u1 = User.get(u1.key)
+      u1.favorites.sort.should == ["CAT"]
+      u1.favorites -= ["CAT"]
+      u1.favorites.sort.should == []
+      u1.save
+
+      u1 = User.get(u1.key)
+      u1.favorites.sort.should == []
+    end
   end
 end
