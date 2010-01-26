@@ -21,6 +21,10 @@ class Base
     property_definitions[name.to_sym] or raise "unknown property='#{name}'"
   end
 
+  def self.has_property?(name)
+    property_definitions.has_key?(name.to_sym)
+  end
+
   def self.default_attrs
     attrs = {}
     property_definitions.each do |pname,pdef|
