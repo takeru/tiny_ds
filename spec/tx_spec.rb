@@ -9,6 +9,7 @@ require File.dirname(__FILE__) + '/spec_helper'
 #   6. パターン「exactly-once」確実に1回だけ実行される処理。2回以上実行されない処理
 #   7. パターン「BASE Transaction」過渡的な状態があるトランザクション
 
+=begin
 describe "TinyDS::Transaction" do
   describe "(1) EG transaction" do
     it "should work" do
@@ -78,3 +79,4 @@ describe "TinyDS::Transaction" do
     end
   end
 end
+=end

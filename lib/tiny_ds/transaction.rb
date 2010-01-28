@@ -13,7 +13,7 @@ module TinyDS
       raise ArgumentError if args.size!=0
       raise ArgumentError if !block_given? && attrs.nil?
       obj = nil
-      TinyDS.tx(retries) do
+      TinyDS.tx(:retries=>retries) do
         obj = get_self_and_check_lock_version
         obj.attributes = attrs if attrs
         yield(obj) if block_given?

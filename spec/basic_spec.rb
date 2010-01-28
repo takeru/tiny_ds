@@ -37,6 +37,25 @@ describe TinyDS::Base do
   end
 
   describe "tx" do
+    it "should not begin new tx if current_transaction exists." do
+      TinyDS.tx{
+        tx1 = AppEngine::Datastore.current_transaction
+        TinyDS.tx{
+          tx2 = AppEngine::Datastore.current_transaction
+          tx1.getId.to_s.should == tx2.getId.to_s
+        }
+      }
+    end
+    it "should begin new tx if :force_begin=true." do
+      TinyDS.tx{
+        tx1 = AppEngine::Datastore.current_transaction
+        TinyDS.tx(:force_begin=>true){
+          tx2 = AppEngine::Datastore.current_transaction
+          # p [tx1.getId, tx2.getId]
+          tx1.getId.to_s.should_not == tx2.getId.to_s
+        }
+      }
+    end
     it "should retried if concurrent modify"
     it "should not overwrite properties modified by other tx"
     it "should not retry when application exception raised"
@@ -96,7 +115,7 @@ describe TinyDS::Base do
         c.body += " world"
         if loop_count<=5
           # modify entity by other tx
-          TinyDS.tx{ com = Comment.get(c0.key); com.num+=1; com.save; }
+          TinyDS.tx(:force_begin=>true){ com = Comment.get(c0.key); com.num+=1; com.save; }
         end
       }
       loop_count.should == 6
