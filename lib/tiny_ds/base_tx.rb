@@ -72,7 +72,7 @@ class BaseTx
   #   TODO TxIDを指定できるようにする。TxSrc#key.nameにTxIDを指定して重複実行防止
   def create_tx(src, dest, args)
     tx_src = nil
-    TinyDS.tx(tx_retries){
+    TinyDS.tx(:force_begin=>true, :retries=>tx_retries){
       src = src.class.get(src.key)
       src_phase(src, args)
       src.save!
@@ -102,7 +102,7 @@ class BaseTx
   def roll_forward
     tx_src = TxSrc.get(@tx_key)
 
-    TinyDS.tx(tx_retries){
+    TinyDS.tx(:force_begin=>true, :retries=>tx_retries){
       dest_key = LowDS::KeyFactory.stringToKey(tx_src.dest_key)
       dest = dest_key.kind.constantize.get(dest_key)
       done_name = "TxDone_#{@tx_key.to_s}"
@@ -122,7 +122,7 @@ class BaseTx
     }
 
     # TxSrc#statusをdoneに
-    TinyDS.tx(tx_retries){
+    TinyDS.tx(:force_begin=>true, :retries=>tx_retries){
       tx_src = TxSrc.get!(@tx_key)
       if tx_src.status=="pending"
         tx_src.status = "done"
@@ -133,7 +133,7 @@ class BaseTx
     return true
   rescue => e
     puts e.inspect
-    TinyDS.tx(tx_retries){
+    TinyDS.tx(:force_begin=>true, :retries=>tx_retries){
       tx_src = TxSrc.get!(@tx_key)
       tx_src.roll_forward_failed_count += 1
       if roll_forward_retries_limit < tx_src.roll_forward_failed_count

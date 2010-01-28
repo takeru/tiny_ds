@@ -1,6 +1,6 @@
 module TinyDS
   class Base
-    # @user.tx{                   |u|    u.name="john" }
+    # @user.tx{                   |u| u.name="john" }
     # @user.tx(10){               |u| u.name="john" }
     # @user.tx(    :name=>"john")
     # @user.tx(10, :name=>"john")
