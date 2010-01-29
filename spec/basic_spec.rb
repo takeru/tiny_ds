@@ -837,4 +837,11 @@ describe TinyDS::Base do
       u1.favorites.sort.should == []
     end
   end
+  describe "boolean property" do
+    it "true/false"
+    it "nil"
+    it "123"
+    it "str"
+    it "query"
+  end
 end
