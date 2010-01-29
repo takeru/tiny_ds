@@ -28,7 +28,7 @@ spec = Gem::Specification.new do |s|
   s.homepage = "http://github.com/takeru/tiny_ds"
   s.require_path = 'lib'
   s.files = %w(LICENSE README.rdoc Rakefile) +
-            Dir.glob("spec/**/*") + Dir.glob("lib/**/*") 
+            Dir.glob("spec/**/*.rb") + Dir.glob("lib/**/*.rb")
   s.add_dependency('appengine-apis')
 end
 
