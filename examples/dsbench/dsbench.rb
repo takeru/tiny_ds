@@ -98,3 +98,44 @@ def parse_11pbsize_put
   end
 end
 
+#########################################################################################
+def run_21list_put
+  threads = []
+  10.times do
+    t = Thread.new do
+      [0,1,2,4,8,16,32,64,128,256].each do |size|
+        [true,false].each do |index|
+          s = StringIO.new
+          repeat = 5
+          url = $url_base + "/21list_put?size=#{size}&index=#{index}&repeat=#{repeat}"
+          open(url) do |f|
+            s.puts "######## size=#{size} index=#{index} repeat=#{repeat}"
+            s.puts f.read
+          end
+          sync_puts s.string
+          sleep(size/100)
+        end
+      end
+    end
+    threads << t
+  end
+  threads.each do |t|
+    t.join
+  end
+end
+
+# ruby -r dsbench.rb -e parse_21list_put < 
+def parse_21list_put
+  $stdin.read.split(/^########.+$/).each do |s|
+    result = YAML.load(s)
+    next unless result
+    size   = result[:pars][:size]
+    index  = result[:pars][:index]
+    repeat = result[:pars][:repeat]
+    api_ms_per_call  = result[:bench_result][:api_ms] / result[:api_calls].size
+    real_ms_per_call = result[:api_calls].inject(0){|sum,a| sum+=a[:real_ms] } / result[:api_calls].size
+    key = "#{'%06d' % size}_#{index.to_s[0,1]}_#{'%02d' % repeat}"
+    puts "#{key},#{'%10.2f' % api_ms_per_call},#{'%10.2f' % real_ms_per_call}"
+  end
+end
+

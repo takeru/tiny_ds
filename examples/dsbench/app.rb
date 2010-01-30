@@ -55,10 +55,19 @@ get '/' do
   paths << "/01props_put?count=8&type=integer&index=false&repeat=10"
   paths << "/01props_put?count=32&type=integer&index=false&repeat=10"
   paths << "/01props_put?count=128&type=integer&index=false&repeat=10"
+  
   paths << "/11pbsize_put?size=1&repeat=5"
   paths << "/11pbsize_put?size=10000&repeat=5"
   paths << "/11pbsize_put?size=100000&repeat=5"
   paths << "/11pbsize_put?size=1000000&repeat=5"
+  
+  paths << "/21list_put?size=8&index=true&repeat=5"
+  paths << "/21list_put?size=32&index=true&repeat=5"
+  paths << "/21list_put?size=128&index=true&repeat=5"
+  paths << "/21list_put?size=8&index=false&repeat=5"
+  paths << "/21list_put?size=32&index=false&repeat=5"
+  paths << "/21list_put?size=128&index=false&repeat=5"
+  
   paths.collect{|path| "<a href='#{path}'>#{h(path)}</a><br />" }.join
 end
 
@@ -116,6 +125,42 @@ get '/11pbsize_put' do
   end
 
   pars = {:size=>size, :repeat=>repeat}
+  api_calls_sum = {:real_ms=>api_calls.inject(0){|sum,a| sum+=a[:real_ms] }}
+  content_type "text/plain"
+  return render_result(
+    :pars          => pars,
+    :bench_result  => bench_result,
+    :api_calls_sum => api_calls_sum,
+    :api_calls     => api_calls
+  )
+end
+
+class ManyItemsListProperty < TinyDS::Base
+  property :prop0, :list, :index=>true
+end
+class ManyItemsListPropertyNoIndex < TinyDS::Base
+  property :prop0, :list, :index=>false
+end
+
+# [21list_put] list size. index=true/false.
+get '/21list_put' do
+  size   = params[:size].to_i      # 1,1000,10000,100000,...
+  index  = params[:index]=="true"  # true/false
+  repeat = params[:repeat].to_i    #
+
+  klass = index ? ManyItemsListProperty : ManyItemsListPropertyNoIndex
+
+  bench_result = nil
+  api_calls = LogDelegate.instance.collect_logs do
+    bench_result = ds_benchmark do
+      repeat.times do |repeat_count|
+        prop0 = (0...size).to_a.collect{ rand(10000000) }
+        e = klass.create(:prop0=>prop0)
+      end
+    end
+  end
+
+  pars = {:size=>size, :index=>index, :repeat=>repeat}
   api_calls_sum = {:real_ms=>api_calls.inject(0){|sum,a| sum+=a[:real_ms] }}
   content_type "text/plain"
   return render_result(
