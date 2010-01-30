@@ -51,8 +51,10 @@ get '/' do
   paths = []
   paths << "/01props_put?count=8&type=integer&index=true&repeat=10"
   paths << "/01props_put?count=32&type=integer&index=true&repeat=10"
+  paths << "/01props_put?count=128&type=integer&index=true&repeat=10"
   paths << "/01props_put?count=8&type=integer&index=false&repeat=10"
   paths << "/01props_put?count=32&type=integer&index=false&repeat=10"
+  paths << "/01props_put?count=128&type=integer&index=false&repeat=10"
   paths.collect{|path| "<a href='#{path}'>#{h(path)}</a><br />" }.join
 end
 
@@ -82,12 +84,12 @@ get '/01props_put' do
   pars = {:count=>count, :type=>type, :index=>index, :repeat=>repeat}
   api_calls_sum = {:real_ms=>api_calls.inject(0){|sum,a| sum+=a[:real_ms] }}
   content_type "text/plain"
-  {:pars          => pars,
-   :bench_result  => bench_result,
-   :api_calls_sum => api_calls_sum,
-   :api_calls     => api_calls,
-   :now           => Time.now.strftime("%Y%m%d_%H%M%S_%Z"),
-   :gae_guid      => $gae_guid}.to_yaml
+  return render_result(
+    :pars          => pars,
+    :bench_result  => bench_result,
+    :api_calls_sum => api_calls_sum,
+    :api_calls     => api_calls
+  )
 end
 
 $qs = com.google.appengine.api.quota.QuotaServiceFactory.getQuotaService
@@ -113,6 +115,11 @@ def __current_quotas
           :api=>{:cycles=>api_cycles, :sec=>api_sec, :supports=>api_supports}}
 end
 
+def render_result(hash)
+  hash[:now]      = Time.now.strftime("%Y%m%d_%H%M%S_%Z")
+  hash[:gae_guid] = $gae_guid
+  hash.to_yaml
+end
 
 =begin
 $mc     = AppEngine::Memcache.new

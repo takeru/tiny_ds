@@ -1,14 +1,4 @@
-#import java.util.concurrent.Future;
-#import java.util.logging.Logger;
-#import com.google.apphosting.api.ApiProxy;
-#import com.google.apphosting.api.ApiProxy.ApiConfig;
-#import com.google.apphosting.api.ApiProxy.ApiProxyException;
-#import com.google.apphosting.api.ApiProxy.Delegate;
-#import com.google.apphosting.api.ApiProxy.Environment;
-#import com.google.apphosting.api.ApiProxy.LogRecord;
-
-class LogDelegate
-  #implements Delegate<Environment>
+class LogDelegate #implements Delegate<Environment>
   def self.instance
     @instance
   end
@@ -42,7 +32,7 @@ class LogDelegate
     start_ns = java.lang.System.nanoTime
     result = @originalDelegate.makeSyncCall(env, service, method, requestBuf);
     real_ms = (java.lang.System.nanoTime - start_ns)/1000000.0
-    @logs << {:method=>"makeSyncCall/#{service}/#{method}", :requestBuf_length=>requestBuf.length, :real_ms=>real_ms}
+    @logs << {:method=>"makeSyncCall/#{service}/#{method}", :req_size=>requestBuf.length, :resp_size=>result.length, :real_ms=>real_ms}
     result
   end
 
