@@ -27,9 +27,7 @@ def run_01props_put
             url = $url_base + "/01props_put?count=#{count}&type=#{type}&index=#{index}&repeat=#{repeat}"
             open(url) do |f|
               s.puts "######## count=#{count} type=#{type} index=#{index} repeat=#{repeat}"
-              yaml_src = f.read
-              result = YAML.load(yaml_src)
-              s.puts(yaml_src)
+              s.puts f.read
             end
             sync_puts s.string
           end
@@ -58,3 +56,45 @@ def parse_01props_put
     puts "#{key},#{'%10.2f' % api_ms_per_call},#{'%10.2f' % real_ms_per_call}"
   end
 end
+
+#########################################################################################
+def run_11pbsize_put
+  threads = []
+  10.times do
+    t = Thread.new do
+      [     1,
+         1000,  2000,  4000,  8000,
+        10000, 20000, 40000, 80000,
+       100000,200000,400000,800000 ].each do |size|
+        s = StringIO.new
+        repeat = 5
+        url = $url_base + "/11pbsize_put?size=#{size}&repeat=#{repeat}"
+        open(url) do |f|
+          s.puts "######## size=#{size} repeat=#{repeat}"
+          s.puts f.read
+        end
+        sync_puts s.string
+        sleep(3*size/100000)
+      end
+    end
+    threads << t
+  end
+  threads.each do |t|
+    t.join
+  end
+end
+
+# ruby -r dsbench.rb -e parse_11pbsize_put < 11pbsize_put_20100130_202301.ymls | sort
+def parse_11pbsize_put
+  $stdin.read.split(/^########.+$/).each do |s|
+    result = YAML.load(s)
+    next unless result
+    size   = result[:pars][:size]
+    repeat = result[:pars][:repeat]
+    api_ms_per_call  = result[:bench_result][:api_ms] / result[:api_calls].size
+    real_ms_per_call = result[:api_calls].inject(0){|sum,a| sum+=a[:real_ms] } / result[:api_calls].size
+    key = "#{'%06d' % size}_#{'%02d' % repeat}"
+    puts "#{key},#{'%10.2f' % api_ms_per_call},#{'%10.2f' % real_ms_per_call}"
+  end
+end
+

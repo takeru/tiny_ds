@@ -55,10 +55,14 @@ get '/' do
   paths << "/01props_put?count=8&type=integer&index=false&repeat=10"
   paths << "/01props_put?count=32&type=integer&index=false&repeat=10"
   paths << "/01props_put?count=128&type=integer&index=false&repeat=10"
+  paths << "/11pbsize_put?size=1&repeat=5"
+  paths << "/11pbsize_put?size=10000&repeat=5"
+  paths << "/11pbsize_put?size=100000&repeat=5"
+  paths << "/11pbsize_put?size=1000000&repeat=5"
   paths.collect{|path| "<a href='#{path}'>#{h(path)}</a><br />" }.join
 end
 
-# [01props] count of property, indexed or not
+# [01props_put] count of property, indexed or not
 get '/01props_put' do
   count  = params[:count].to_i     # 1,2,4,8,16,32,64,128
   type   = params[:type].to_sym    # integer/string
@@ -91,6 +95,37 @@ get '/01props_put' do
     :api_calls     => api_calls
   )
 end
+
+
+class LargeProperty < TinyDS::Base
+  property :prop0, :text, :index=>false
+end
+
+# [11pbsize_put] size of PB. index=false.
+get '/11pbsize_put' do
+  size   = params[:size].to_i      # 1,1000,10000,100000,...
+  repeat = params[:repeat].to_i    # 
+
+  bench_result = nil
+  api_calls = LogDelegate.instance.collect_logs do
+    bench_result = ds_benchmark do
+      repeat.times do |repeat_count|
+        e = LargeProperty.create(:prop0=>"a"*size)
+      end
+    end
+  end
+
+  pars = {:size=>size, :repeat=>repeat}
+  api_calls_sum = {:real_ms=>api_calls.inject(0){|sum,a| sum+=a[:real_ms] }}
+  content_type "text/plain"
+  return render_result(
+    :pars          => pars,
+    :bench_result  => bench_result,
+    :api_calls_sum => api_calls_sum,
+    :api_calls     => api_calls
+  )
+end
+
 
 $qs = com.google.appengine.api.quota.QuotaServiceFactory.getQuotaService
 def ds_benchmark
