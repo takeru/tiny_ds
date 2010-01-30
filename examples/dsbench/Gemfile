@@ -1,0 +1,10 @@
+# Critical default settings:
+disable_system_gems
+disable_rubygems
+bundle_path ".gems/bundler_gems"
+
+# List gems to bundle here:
+gem "tiny_ds", "0.0.3.pre"
+gem "sinatra"
+gem "json-jruby"
+
