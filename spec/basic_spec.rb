@@ -374,6 +374,25 @@ describe TinyDS::Base do
       proc{ Comment.get_by_name!(k1.name)         }.should raise_error(AppEngine::Datastore::EntityNotFound)
       proc{ Comment.get_by_name!(k1.name+"x", c0) }.should raise_error(AppEngine::Datastore::EntityNotFound)
     end
+    it "should be got by ids" do
+      k0 = Comment.create({}).key
+      k1 = Comment.create({}).key
+      k2 = Comment.create({}).key
+
+      a = Comment.get_by_ids([k0.id, k1.id, k2.id])
+      a.size.should == 3
+      a[0].key.to_s.should == k0.to_s
+      a[1].key.to_s.should == k1.to_s
+      a[2].key.to_s.should == k2.to_s
+
+      a[1].destroy
+      a = Comment.get_by_ids([k0.id, k1.id, k2.id])
+      a.size.should == 3
+      a[0].key.to_s.should == k0.to_s
+      a[1].should be_nil
+      a[2].key.to_s.should == k2.to_s
+    end
+    it "should be got by names"
   end
 
   describe "save" do
@@ -844,4 +863,7 @@ describe TinyDS::Base do
     it "str"
     it "query"
   end
+
+  it "build_key"
+  it "timeout"
 end

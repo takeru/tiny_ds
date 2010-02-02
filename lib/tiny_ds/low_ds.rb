@@ -58,19 +58,14 @@ module LowDS
           else raise "invalid key type key.class=[#{key.class}] key.inspect=[#{key.inspect}]"
           end
 
-    retries = opts[:retries] || 20
-    while 0<=retries
-      retries -= 1
-      begin
-        ent = AppEngine::Datastore.get(key)
-        if opts[:kind]
-          raise "kind missmatch. #{ent.kind}!=#{opts[:kind]}" if ent.kind!=opts[:kind]
-        end
-        return ent
-      rescue AppEngine::Datastore::Timeout => ex
-        raise ex if retries<=0
-        sleep(0.001)
-      end
+    retry_if_timeout(opts[:retries]) do
+      AppEngine::Datastore.get(key)
+    end
+  end
+
+  def self.batch_get(keys, opts={})
+    retry_if_timeout(opts[:retries]) do
+      AppEngine::Datastore.get(keys)
     end
   end
 
@@ -82,6 +77,22 @@ module LowDS
   # delete
   def self.delete(ent)
     AppEngine::Datastore.delete([ent.key])
+  end
+
+  def self.retry_if_timeout(retries=nil)
+    ret = nil
+    retries ||= 20
+    while 0<=retries
+      retries -= 1
+      begin
+        ret = yield
+        break
+      rescue AppEngine::Datastore::Timeout => ex
+        raise ex if retries<=0
+        sleep(0.001)
+      end
+    end
+    ret
   end
 end
 end

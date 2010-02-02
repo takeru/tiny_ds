@@ -161,7 +161,9 @@ class Base
 
   # Foo.get(key)
   def self.get!(key)
-    self.new_from_entity(LowDS.get(key, :kind=>self.kind))
+    ent = LowDS.get(key)
+    raise "kind missmatch. #{ent.kind}!=#{self.kind}" if ent.kind != self.kind
+    self.new_from_entity(ent)
   end
   def self.get(key)
     get!(key)
@@ -169,15 +171,18 @@ class Base
     nil
   end
 
+  def self.build_key(id_or_name, parent)
+    if parent
+      parent = to_key(parent)
+      kfb = LowDS::KeyFactory::Builder.new(parent)
+      kfb.addChild(kind, id_or_name)
+      kfb.key
+    else
+      LowDS::KeyFactory::Builder.new(kind, id_or_name).key
+    end
+  end
   def self._get_by_id_or_name!(id_or_name, parent)
-    key = if parent
-            parent = to_key(parent)
-            kfb = LowDS::KeyFactory::Builder.new(parent)
-            kfb.addChild(kind, id_or_name)
-            kfb.key
-          else
-            LowDS::KeyFactory::Builder.new(kind, id_or_name).key
-          end
+    key = build_key(id_or_name, parent)
     get!(key)
   end
 
@@ -193,17 +198,32 @@ class Base
     _get_by_id_or_name!(name, parent)
   end
   def self.get_by_id(id, parent=nil)
-    if id.kind_of?(String) && id==id.to_i.to_s
-      id = id.to_i
-    end
-    _get_by_id_or_name!(id, parent)
+    get_by_id!(id, parent)
   rescue AppEngine::Datastore::EntityNotFound => e
     nil
   end
   def self.get_by_name(name, parent=nil)
-    _get_by_id_or_name!(name, parent)
+    get_by_name!(name, parent)
   rescue AppEngine::Datastore::EntityNotFound => e
     nil
+  end
+
+  # batch get
+  def self.get_by_ids(ids, parent=nil)
+    keys = ids.collect{|id| build_key(id, parent) }
+    entities = LowDS.batch_get(keys)
+    objs = entities.collect do |ent|
+      if ent
+        raise "kind missmatch. #{ent.kind}!=#{self.kind}" if ent.kind != self.kind
+        self.new_from_entity(ent)
+      else
+        nil
+      end
+    end
+    objs
+  end
+  def self.get_by_names(names, parent=nil)
+    get_by_ids(names, parent)
   end
 
 #  # Foo.find
