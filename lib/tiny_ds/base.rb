@@ -151,10 +151,10 @@ class Base
 #  end
 
   def __before_save_set_timestamps
-    if self.class.property_definitions[:created_at] && new_record?
+    if self.class.has_property?(:created_at) && new_record?
       self.created_at = Time.now
     end
-    if self.class.property_definitions[:updated_at]
+    if self.class.has_property?(:updated_at)
       self.updated_at = Time.now
     end
   end
