@@ -15,10 +15,14 @@ class LogDelegate #implements Delegate<Environment>
   def self.collect_logs(&block)
     instance.collect_logs(&block)
   end
+  def self.enable=(v)
+    instance.enable = v
+  end
 
   def initialize(originalDelegate)
     @originalDelegate = originalDelegate
     @logs = nil
+    @enable = true
   end
 
   def collect_logs
@@ -29,9 +33,14 @@ class LogDelegate #implements Delegate<Environment>
     @logs = nil
     logs
   end
+  attr_accessor :enable
 
   #public byte[] makeSyncCall(Environment env, String service, String method, byte[] requestBuf) throws ApiProxyException
   def makeSyncCall(env, service, method, requestBuf)
+    unless @enable
+      return @originalDelegate.makeSyncCall(env, service, method, requestBuf);
+    end
+
     @qs ||= com.google.appengine.api.quota.QuotaServiceFactory.getQuotaService
 
     start_api_cycles = @qs.getApiTimeInMegaCycles
@@ -47,7 +56,7 @@ class LogDelegate #implements Delegate<Environment>
     s = "$$$$ makeSyncCall/%12s/%16s | req=%6d | resp=%6d | api_ms=%8.2f real_ms=%8.2f" % [service, method, requestBuf.length, result.length, api_ms, real_ms]
     #s += " api_mega_cycles=#{api_mega_cycles}"
     if $env=="production"
-      $app_logger.debug s
+      $app_logger.debug(s)
     elsif $env=="development"
       print red, on_white, bold, s, reset, "\n"
     end

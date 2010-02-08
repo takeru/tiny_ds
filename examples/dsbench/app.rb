@@ -8,7 +8,11 @@ require 'appengine-apis/logger'
 $gae_guid = "GAE"+Time.now.strftime("%Y%m%d%H%M%S")+"-"+java.util.UUID.randomUUID().to_s
 $app_logger = AppEngine::Logger.new
 def _log(s)
-  $app_logger.info "#{Time.now.strftime('%Y%m%d_%H%M%S_%Z')},#{$gae_instance_guid},#{s}"
+  if $env=="production"
+    $app_logger.debug(s)
+  elsif $env=="development"
+    puts(s)
+  end
 end
 
 # Make sure our template can use <%=h
@@ -19,6 +23,10 @@ end
 
 require "log_delegate"
 LogDelegate.install
+before do
+  #_log("#{Time.now.strftime('%Y%m%d_%H%M%S_%Z')},#{$gae_instance_guid}")
+  LogDelegate.enable = (params[:ld]!="f")
+end
 
 class ManyPropertyKind
   def self.kind_name(count, type, index)
@@ -68,7 +76,12 @@ get '/' do
   paths << "/21list_put?size=32&index=false&repeat=5"
   paths << "/21list_put?size=128&index=false&repeat=5"
   
-  paths.collect{|path| "<a href='#{path}'>#{h(path)}</a><br />" }.join
+  paths << "/31_basetx"
+
+  html = paths.collect{|path| "<a href='#{path}'>#{h(path)}</a><br />" }.join
+  html << "<hr />"
+  html << "ENV['RACK_ENV']=[#{ENV['RACK_ENV']}] $env=[#{$env}]"
+  html
 end
 
 # [01props_put] count of property, indexed or not
@@ -197,14 +210,17 @@ class User < TinyDS::Base
 end
 
 get "/31_basetx" do
-  puts "======== /31_basetx"
+  _log "======== /31_basetx"
   @users = User.query.all
   erb <<END
 User.count = #{User.count}<br />
 <a href="/31_basetx/init?num=5">init(5)</a><br />
 <a href="/31_basetx/init?num=10">init(10)</a><br />
 <a href="/31_basetx/init?num=20">init(20)</a><br />
-<a href="/31_basetx/exec">exec</a><br />
+<a href="/31_basetx/exec?apply=t&ld=t">exec(apply=t&ld=t)</a><br />
+<a href="/31_basetx/exec?apply=f&ld=t">exec(apply=f&ld=t)</a><br />
+<a href="/31_basetx/exec?apply=t&ld=f">exec(apply=t&ld=f)</a><br />
+<a href="/31_basetx/exec?apply=f&ld=f">exec(apply=f&ld=f)</a><br />
 <a href="/31_basetx/rollforward">rollforward</a><br />
 <table border=1>
   <% @users.each_with_index do |u,num| %>
@@ -231,6 +247,7 @@ END
 end
 
 get "/31_basetx/init" do
+  _log "======== /31_basetx/init"
   User.destroy_all
   TinyDS::BaseTx::SrcJournal.destroy_all
   TinyDS::BaseTx::DestJournal.destroy_all
@@ -242,16 +259,21 @@ get "/31_basetx/init" do
 end
 
 get "/31_basetx/exec" do
-  puts "======== /31_basetx/exec"
+  _log "======== /31_basetx/exec"
   count = User.count
   u1 = User.query.all(:limit=>1, :offset=>rand(count)).first
   u2 = User.query.all(:limit=>1, :offset=>rand(count)).first
+  _log "==== send_money_to"
   src_journals = u1.send_money_to(u2, 100)
-  TinyDS::BaseTx.apply(src_journals)
+  if params[:apply]=="t"
+    _log "==== apply"
+    TinyDS::BaseTx.apply(src_journals)
+  end
   redirect "/31_basetx"
 end
 
 get "/31_basetx/rollforward" do
+  _log "======== /31_basetx/rollforward"
   TinyDS::BaseTx.rollforward
   redirect "/31_basetx"
 end
