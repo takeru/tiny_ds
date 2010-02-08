@@ -23,6 +23,9 @@ end
 
 require "log_delegate"
 LogDelegate.install
+LogDelegate.logger = $app_logger
+LogDelegate.environment = $env
+
 before do
   #_log("#{Time.now.strftime('%Y%m%d_%H%M%S_%Z')},#{$gae_instance_guid}")
   LogDelegate.enable = (params[:ld]!="f")
@@ -263,10 +266,10 @@ get "/31_basetx/exec" do
   count = User.count
   u1 = User.query.all(:limit=>1, :offset=>rand(count)).first
   u2 = User.query.all(:limit=>1, :offset=>rand(count)).first
-  _log "==== send_money_to"
+  _log "    ==== send_money_to"
   src_journals = u1.send_money_to(u2, 100)
   if params[:apply]=="t"
-    _log "==== apply"
+    _log "    ==== apply"
     TinyDS::BaseTx.apply(src_journals)
   end
   redirect "/31_basetx"

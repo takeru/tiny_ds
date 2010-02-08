@@ -18,11 +18,19 @@ class LogDelegate #implements Delegate<Environment>
   def self.enable=(v)
     instance.enable = v
   end
+  def self.environment=(v)
+    instance.environment = v
+  end
+  def self.logger=(v)
+    instance.logger = v
+  end
 
   def initialize(originalDelegate)
     @originalDelegate = originalDelegate
     @logs = nil
     @enable = true
+    @environment = "development"
+    @logger = Logger.new($stderr)
   end
 
   def collect_logs
@@ -34,6 +42,8 @@ class LogDelegate #implements Delegate<Environment>
     logs
   end
   attr_accessor :enable
+  attr_accessor :environment
+  attr_accessor :logger
 
   #public byte[] makeSyncCall(Environment env, String service, String method, byte[] requestBuf) throws ApiProxyException
   def makeSyncCall(env, service, method, requestBuf)
@@ -55,9 +65,9 @@ class LogDelegate #implements Delegate<Environment>
     end
     s = "$$$$ makeSyncCall/%12s/%16s | req=%6d | resp=%6d | api_ms=%8.2f real_ms=%8.2f" % [service, method, requestBuf.length, result.length, api_ms, real_ms]
     #s += " api_mega_cycles=#{api_mega_cycles}"
-    if $env=="production"
-      $app_logger.debug(s)
-    elsif $env=="development"
+    if @environment=="production"
+      @logger.debug(s)
+    elsif @environment=="development"
       print red, on_white, bold, s, reset, "\n"
     end
     result
