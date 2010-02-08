@@ -1,5 +1,5 @@
 require 'sinatra'
-require 'tiny_ds'
+require 'lib/tiny_ds'
 require 'json'
 require 'yaml'
 require 'appengine-apis/memcache'
@@ -170,6 +170,88 @@ get '/21list_put' do
     :api_calls     => api_calls
   )
 end
+
+
+# [31_basetx]
+class User < TinyDS::Base
+  property :nickname,   :string
+  property :money,      :integer
+  property :sent_count, :integer, :default=>0
+  property :recv_count, :integer, :default=>0
+  def send_money_to(u2, amount)
+    TinyDS.tx do
+      u1 = User.get(self.key)
+      u1.money -= amount
+      u1.sent_count += 1
+      u1.save
+      TinyDS::BaseTx.create_journal(u1, u2, :recv_money_from, u1.key.to_s, amount)
+    end
+  end
+  def recv_money_from(u1_key, amount)
+    self.money += amount
+    self.recv_count += 1
+    self.save
+  end
+end
+get "/31_basetx" do
+  erb <<END
+User.count = #{User.count}<br />
+<a href="/31_basetx/init?num=5">init(5)</a><br />
+<a href="/31_basetx/init?num=10">init(10)</a><br />
+<a href="/31_basetx/init?num=20">init(20)</a><br />
+<a href="/31_basetx/exec">exec</a><br />
+<table border=1>
+  <% User.query.all.each_with_index do |u,num| %>
+    <tr>
+      <td><%= h num+1        %></td>
+      <td><%= h u.nickname   %></td>
+      <td><%= h u.money      %></td>
+      <td><%= h u.sent_count %></td>
+      <td><%= h u.recv_count %></td>
+    </tr>
+  <% end %>
+</table>
+<br />
+SrcJournal.count=<%= TinyDS::BaseTx::SrcJournal.count %><br />
+DestJournal.count=<%= TinyDS::BaseTx::DestJournal.count %><br />
+END
+end
+
+get "/31_basetx/init" do
+  User.destroy_all
+  TinyDS::BaseTx::SrcJournal.destroy_all
+  TinyDS::BaseTx::DestJournal.destroy_all
+  raise "User.count!=0" if User.count!=0
+  params[:num].to_i.times do |n|
+    User.create(:nickname=>"u#{n}", :money=>10000)
+  end
+  redirect "/31_basetx"
+end
+
+get "/31_basetx/exec" do
+  count = User.count
+  u1 = User.query.all(:limit=>1, :offset=>rand(count)).first
+  u2 = User.query.all(:limit=>1, :offset=>rand(count)).first
+  u1.send_money_to(u2, 100)
+  TinyDS::BaseTx.copy_journal_all
+  TinyDS::BaseTx.apply_journal_all
+  redirect "/31_basetx"
+end
+
+
+# TODO
+# - 「tx内でJournalをbatch_put * 10」「エンティティ内にYAMLでジャーナル」
+# - query(普通にquery, keyonly, count)
+# - batch_put vs put
+# - batch_get vs get
+#   get(PB-size, property-count)
+#   batch_get
+#   batch_put(PB-size,index-count,property-count,...)
+#   memcache(PB-size)
+#   query(result-count,key-only,limit,offset,ancestor,count)
+#   key range query
+#   api_cpu_ms with composite index(one,many...)
+
 
 
 $qs = com.google.appengine.api.quota.QuotaServiceFactory.getQuotaService

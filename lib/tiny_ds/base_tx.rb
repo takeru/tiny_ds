@@ -1,161 +1,170 @@
 # memo デプロイ時に未完了のトランザクションがあってトランザクション定義がかわったら？version???
 module TinyDS
-class BaseTx
-  def src_phase(src, args)
-    raise "no impl."
-  end
-  def dest_phase(dest, args)
-    raise "no impl."
-  end
-  def self.tx_kind
-    name
-  end
-  def roll_forward_retries_limit
-    100
-  end
-  def tx_retries
-    3
-  end
-  attr_reader :tx_key
-
-  # トランザクション実行
-  #          :  src_phase   dest_phase
-  #   raised :    failed      ----
-  #   false  :    OK          failed
-  #   true   :    OK          OK
-  def self.exec(src, dest, args={})
-    tx = new
-    tx.create_tx(src, dest, args)
-    begin
-      tx.roll_forward
-    rescue AppEngine::Datastore::TransactionFailed => e
-      return false
-    end
-    return true
-  end
-
-  def self.roll_forward_all(limit=50)
-    pending_tx_query.each(:limit=>limit) do |tx_src|
-      tx = new
-      tx.restore_tx(tx_src)
-      begin
-        tx.roll_forward
-      rescue => e
-        #p "roll_forward failed. tx=[#{tx.tx_key}] e=[#{e.inspect}]"
+  class BaseTx
+    class SrcJournal < ::TinyDS::Base
+      property :dest_klass,        :string, :index=>false
+      property :dest_key,          :string, :index=>false
+      property :method_name,       :string, :index=>false
+      property :args_yaml,         :text
+      property :copy_failed_count, :integer, :default=>0
+      def self.kind; "__SrcJournal" end
+      def key_string
+        self.key.to_s
       end
     end
-    nil
-  end
-
-  def self.pending_tx_query(status="pending", dire=:asc) # pending/done/failed
-    TxSrc.query.
-      filter(:tx_kind, "==", tx_kind).
-      filter(:status,  "==", status).
-      sort(:created_at, dire)
-  end
-
-  # doneなTxSrcと対応するTxDoneを削除する
-#  def self.delete_done_tx
-#  end
-
-  class TxSrc < Base
-    property :tx_kind,                   :string
-    property :dest_key,                  :string
-    property :status,                    :string,  :default=>"pending"
-    property :roll_forward_failed_count, :integer, :default=>0
-    property :args,                      :text
-    property :created_at,                :time
-    property :done_at,                   :time
-  end
-
-  # トランザクション前半
-  #   TODO TxIDを指定できるようにする。TxSrc#key.nameにTxIDを指定して重複実行防止
-  def create_tx(src, dest, args)
-    tx_src = nil
-    TinyDS.tx(:force_begin=>true, :retries=>tx_retries){
-      src = src.class.get(src.key)
-      src_phase(src, args)
-      src.save!
-
-      attrs = {
-        :tx_kind  => self.class.tx_kind,
-        :dest_key => dest.key.to_s,
-        :args     => args.to_yaml,
-      }
-      tx_src = TxSrc.create!(attrs, :parent=>src) # srcがparent, tx_srcがchild
-      # COMMIT:「srcの処理(=src_phase)、TxSrc作成」
-    }
-    @tx_key = tx_src.key
-    nil
-  end
-
-  def restore_tx(tx_src)
-    @tx_key = tx_src.key
-    nil
-  end
-
-  class TxDone < Base
-    property :done_at, :time
-  end
-
-  # トランザクション後半
-  def roll_forward
-    tx_src = TxSrc.get(@tx_key)
-
-    TinyDS.tx(:force_begin=>true, :retries=>tx_retries){
-      dest_key = LowDS::KeyFactory.stringToKey(tx_src.dest_key)
-      dest = dest_key.kind.constantize.get(dest_key)
-      done_name = "TxDone_#{@tx_key.to_s}"
-      done_key = LowDS::KeyFactory.createKey(dest.key, TxDone.kind, done_name)
-      begin
-        TxDone.get!(done_key)
-        # なにもしない : TxDoneが存在しているということはdest_phaseは処理済み
-      rescue AppEngine::Datastore::EntityNotFound => e
-        # TxDoneが無い→dest_phaseが未実行
-        attrs = {:done_at=>Time.now}
-        tx_done = TxDone.create!(attrs, :parent=>dest, :name=>done_name)
-        dest_phase(dest, YAML.load(tx_src.args)) # destの処理を実行
-        dest.save!
+    class DestJournal < ::TinyDS::Base
+      property :dest_klass,         :string, :index=>false
+      property :method_name,        :string, :index=>false
+      property :args_yaml,          :text
+      property :apply_failed_count, :integer, :default=>0
+      def self.kind; "__DestJournal" end
+      def self.src_journal_exist?(dest_journal_key)
+        src_journal_key = dest_journal_key.name
+        if SrcJournal.get(src_journal_key)
+          true
+        else
+          false
+        end
       end
-      # memo: done_keyが同じTxDoneをcommitしようとするとTransactionFailedになるはず→dest_phaseもキャンセル
-      # COMMIT:「destの処理(=dest_phase)、TxDone作成」
-    }
-
-    # TxSrc#statusをdoneに
-    TinyDS.tx(:force_begin=>true, :retries=>tx_retries){
-      tx_src = TxSrc.get!(@tx_key)
-      if tx_src.status=="pending"
-        tx_src.status = "done"
-        tx_src.done_at = Time.now
-        tx_src.save!
-      end
-    }
-    return true
-  rescue => e
-    puts e.inspect
-    TinyDS.tx(:force_begin=>true, :retries=>tx_retries){
-      tx_src = TxSrc.get!(@tx_key)
-      tx_src.roll_forward_failed_count += 1
-      if roll_forward_retries_limit < tx_src.roll_forward_failed_count
-        tx_src.status = "failed"
-      end
-      tx_src.save!
-    }
-    return false
-  end
-
-  if false
-    require "benchmark"
-    def create_tx(src, dest, args)
-      RAILS_DEFAULT_LOGGER.info ["create_tx", Benchmark.measure{
-        _create_tx(src, dest, args)
-      }].inspect
     end
-    def roll_forward
-      RAILS_DEFAULT_LOGGER.info ["roll_forward", Benchmark.measure{
-        _roll_forward
-      }].inspect
+    class << self
+      # (STEP1) create_journal
+      # create src_journal as child of src.
+      # usage:
+      #   TinyDS.tx do # EG-A
+      #     entityA1 = Ent.get(...)
+      #     entityA1.save
+      #     TinyDS::BaseTx.create_journal(
+      #       src,  # entity of EG-A
+      #       dest, # entity of EG-B
+      #       :apply_some,
+      #       arg1, arg2, arg3, ...
+      #     )
+      #     # or entityA1.create_journal(dest, values)
+      #     # or entityA1.base_call(dest, method, arg1, arg2, ...)
+      #   end
+      def create_journal(src, dest, method_name, *args)
+        # TODO raise if current_tx is none
+        src_journal = SrcJournal.create({
+                        :dest_klass  => dest.class.name,
+                        :dest_key    => dest.key.to_s,
+                        :method_name => method_name.to_s,
+                        :args_yaml   => args.to_yaml
+                      }, :parent=>src)
+        src_journal
+      end
+
+      # (STEP2) copy_journal
+      # create dest_journal as child of dest.
+      # 「dest_journalがある」&&「src_journalがない」状態になるまで繰り返し実行される(cronなどで)
+      # src_journalの削除に失敗した場合、成功するまでcopy_journalが実行される。
+      def copy_journal(src_journal)
+        raise "not SrcJournal." unless src_journal.kind_of?(SrcJournal)
+
+        # src_journalからdest_journalにコピーする
+        dest_journal = nil
+        TinyDS.tx(:retries=>10, :force_begin=>true){ # EG-B
+          dest_journal = DestJournal.get_by_name(src_journal.key_string, src_journal.dest_key)
+          unless dest_journal
+            dest_journal = DestJournal.create({
+              :dest_klass  => src_journal.dest_klass,
+              :method_name => src_journal.method_name,
+              :args_yaml   => src_journal.args_yaml
+             },
+            { :parent => src_journal.dest_key,
+              :name   => src_journal.key_string
+             })
+          end
+        }
+
+        # (dest_journalができたら)src_journalを削除する。
+        src_journal.destroy
+
+        return dest_journal
+      end
+      def copy_journal_all(opts={})
+        limit          = opts[:limit]          || 10
+        copy_retry_max = opts[:copy_retry_max] || 10
+        SrcJournal.query.filter(:copy_failed_count, "<", copy_retry_max).
+                         sort(:copy_failed_count, :asc).
+                         each(:limit=>limit) do |src_journal|
+          begin
+            copy_journal(src_journal)
+         #rescue TransactionFailed => e # java.util.ConcurrentModificationException
+          rescue Object => e
+            begin
+              TinyDS.tx(:force_begin=>true) do
+                src_journal = SrcJournal.get(src_journal.key)
+                if src_journal
+                  src_journal.copy_failed_count += 1
+                  src_journal.save
+                end
+              end
+            rescue TransactionFailed => e
+              # ignore
+            end
+          end
+        end
+        nil
+      end
+
+      #=============================================================================================
+      # (STEP3) apply_journal
+      # 「dest_journalがない」状態になるまで繰り返し実行される
+      # 「src_journalがない」状態になっていない場合はapplyしない
+      #  destのメソッドでEG-Bのtx内で操作を行う
+      #  def apply_some(arg1,arg2,arg3,arg4,...)
+      #    self.aaa += arg1
+      #    self.bbb += arg2
+      #    self.ccc += arg3
+      #    self.save
+      #    entX = Ent.get(arg4)
+      #    entX.ddd += arg5
+      #    entX.save
+      #  end
+      def apply_journal(dest_journal_key, opts={})
+        if dest_journal_key.kind_of?(DestJournal)
+          dest_journal_key = dest_journal_key.key
+        end
+        if DestJournal.src_journal_exist?(dest_journal_key) #dest_journal.src_journal_exist?
+          return false
+        end
+
+        # destの'method_name'を実行する＆dest_journalを削除する
+        TinyDS.tx(:retries=>10, :force_begin=>true){ # EG-B
+          dest_journal = DestJournal.get(dest_journal_key)
+          return true unless dest_journal
+          klass = const_get(dest_journal.dest_klass)
+          dest = klass.get(dest_journal.parent_key)
+          dest.send(dest_journal.method_name, *(YAML.load(dest_journal.args_yaml)))
+          dest_journal.destroy
+        }
+        return true
+      end
+      def apply_journal_all(opts={})
+        limit           = opts[:limit]           || 10
+        apply_retry_max = opts[:apply_retry_max] || 10
+        DestJournal.query.filter(:apply_failed_count, "<", apply_retry_max).
+                          sort(:apply_failed_count, :asc).
+                          keys_only.each(:limit=>limit) do |dest_journal_key|
+          begin
+            apply_journal(dest_journal_key)
+          rescue Object => e
+            begin
+              TinyDS.tx(:force_begin=>true) do
+                dest_journal = DestJournal.get(dest_journal_key)
+                if dest_journal
+                  dest_journal.apply_failed_count += 1
+                  dest_journal.save
+                end
+              end
+            rescue TransactionFailed => e
+              # ignore
+            end
+          end
+        end
+        nil
+      end
     end
   end
-end
 end
