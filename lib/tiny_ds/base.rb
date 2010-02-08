@@ -258,7 +258,11 @@ class Base
     AppEngine::Datastore.delete(keys)
   end
   def self.destroy_all
-    destroy(query.keys)
+    loop do
+      _keys = query.keys(:limit=>500)
+      break if _keys.empty?
+      destroy(_keys)
+    end
   end
 
   # set attributes
