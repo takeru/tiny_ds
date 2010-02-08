@@ -6,9 +6,9 @@ require 'appengine-apis/memcache'
 require 'appengine-apis/logger'
 
 $gae_guid = "GAE"+Time.now.strftime("%Y%m%d%H%M%S")+"-"+java.util.UUID.randomUUID().to_s
-$logger = AppEngine::Logger.new
+$app_logger = AppEngine::Logger.new
 def _log(s)
-  $logger.info "#{Time.now.strftime('%Y%m%d_%H%M%S_%Z')},#{$gae_instance_guid},#{s}"
+  $app_logger.info "#{Time.now.strftime('%Y%m%d_%H%M%S_%Z')},#{$gae_instance_guid},#{s}"
 end
 
 # Make sure our template can use <%=h
@@ -179,13 +179,15 @@ class User < TinyDS::Base
   property :sent_count, :integer, :default=>0
   property :recv_count, :integer, :default=>0
   def send_money_to(u2, amount)
+    src_journals = []
     TinyDS.tx do
       u1 = User.get(self.key)
       u1.money -= amount
       u1.sent_count += 1
       u1.save
-      TinyDS::BaseTx.create_journal(u1, u2, :recv_money_from, u1.key.to_s, amount)
+      src_journals << TinyDS::BaseTx.create_journal(u1, u2, :recv_money_from, u1.key.to_s, amount)
     end
+    src_journals
   end
   def recv_money_from(u1_key, amount)
     self.money += amount
@@ -193,15 +195,19 @@ class User < TinyDS::Base
     self.save
   end
 end
+
 get "/31_basetx" do
+  puts "======== /31_basetx"
+  @users = User.query.all
   erb <<END
 User.count = #{User.count}<br />
 <a href="/31_basetx/init?num=5">init(5)</a><br />
 <a href="/31_basetx/init?num=10">init(10)</a><br />
 <a href="/31_basetx/init?num=20">init(20)</a><br />
 <a href="/31_basetx/exec">exec</a><br />
+<a href="/31_basetx/rollforward">rollforward</a><br />
 <table border=1>
-  <% User.query.all.each_with_index do |u,num| %>
+  <% @users.each_with_index do |u,num| %>
     <tr>
       <td><%= h num+1        %></td>
       <td><%= h u.nickname   %></td>
@@ -210,6 +216,13 @@ User.count = #{User.count}<br />
       <td><%= h u.recv_count %></td>
     </tr>
   <% end %>
+  <tr>
+    <td>sum</td>
+    <td>----</td>
+    <td><%= h @users.inject(0){|sum,u| sum + u.money      } %></td>
+    <td><%= h @users.inject(0){|sum,u| sum + u.sent_count } %></td>
+    <td><%= h @users.inject(0){|sum,u| sum + u.recv_count } %></td>
+  </tr>
 </table>
 <br />
 SrcJournal.count=<%= TinyDS::BaseTx::SrcJournal.count %><br />
@@ -229,15 +242,19 @@ get "/31_basetx/init" do
 end
 
 get "/31_basetx/exec" do
+  puts "======== /31_basetx/exec"
   count = User.count
   u1 = User.query.all(:limit=>1, :offset=>rand(count)).first
   u2 = User.query.all(:limit=>1, :offset=>rand(count)).first
-  u1.send_money_to(u2, 100)
-  TinyDS::BaseTx.copy_journal_all
-  TinyDS::BaseTx.apply_journal_all
+  src_journals = u1.send_money_to(u2, 100)
+  TinyDS::BaseTx.apply(src_journals)
   redirect "/31_basetx"
 end
 
+get "/31_basetx/rollforward" do
+  TinyDS::BaseTx.rollforward
+  redirect "/31_basetx"
+end
 
 # TODO
 # - 「tx内でJournalをbatch_put * 10」「エンティティ内にYAMLでジャーナル」

@@ -9,3 +9,4 @@ gem "sinatra"
 gem "json-jruby"
 gem "appengine-apis"
 gem "appengine-rack"
+gem 'term-ansicolor'
