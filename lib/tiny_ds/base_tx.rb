@@ -2,7 +2,7 @@
 module TinyDS
   class BaseTx
     class SrcJournal < ::TinyDS::Base
-      property :dest_klass,         :string, :index=>false
+      property :dest_class,         :string, :index=>false
       property :dest_key,           :string, :index=>false
       property :method_name,        :string, :index=>false
       property :args_yaml,          :text
@@ -18,10 +18,14 @@ module TinyDS
 
       def self.create_journal(src, dest, method_name, *args)
         # TODO raise if current_tx is none
+        if dest.kind_of?(TinyDS::Base)
+          dest = {:class=>dest.class.name, :key=>dest.key}
+        end
+        dest_class = dest
         TinyDS.tx(:force_begin=>false) do
           SrcJournal.create({
-                       :dest_klass  => dest.class.name,
-                       :dest_key    => dest.key.to_s,
+                       :dest_class  => dest[:class],
+                       :dest_key    => dest[:key].to_s,
                        :method_name => method_name.to_s,
                        :args_yaml   => args.to_yaml,
                        :status      => "created"
@@ -38,7 +42,7 @@ module TinyDS
           dest_journal = DestJournal.get_by_name(src_journal.key_string, src_journal.dest_key)
           unless dest_journal
             dest_journal = DestJournal.create({
-              :dest_klass  => src_journal.dest_klass,
+              :dest_class  => src_journal.dest_class,
               :method_name => src_journal.method_name,
               :args_yaml   => src_journal.args_yaml,
               :status      => "copied"
@@ -72,7 +76,7 @@ module TinyDS
     end
 
     class DestJournal < ::TinyDS::Base
-      property :dest_klass,         :string, :index=>false
+      property :dest_class,         :string, :index=>false
       property :method_name,        :string, :index=>false
       property :args_yaml,          :text
       property :status,             :string # copied => done
@@ -87,7 +91,7 @@ module TinyDS
         TinyDS.tx(:retries=>10, :force_begin=>true){ # EG-B
           dest_journal = DestJournal.get(dest_journal_key)
           return if dest_journal.status=="done"
-          klass = const_get(dest_journal.dest_klass)
+          klass = const_get(dest_journal.dest_class)
           dest = klass.get(dest_journal.parent_key)
           # TODO if dest.nil? ...
           dest.send(dest_journal.method_name, *(YAML.load(dest_journal.args_yaml)))

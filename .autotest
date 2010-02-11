@@ -1,0 +1,12 @@
+Autotest.add_hook :initialize do |at|
+  %w{.svn
+     .hg
+     .git 
+     vendor
+     .bin
+     datastore-indexes-auto.xml
+    }.each {|exception| at.add_exception(exception)}
+
+  # http://syntatic.wordpress.com/2009/08/13/jruby-1-3-0-with-autotest/
+  at.unit_diff = "unit_diff"
+end
