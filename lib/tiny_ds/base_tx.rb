@@ -164,7 +164,7 @@ module TinyDS
       #   until src_journals.empty?
       #     src_journals = TinyDS::BaseTx.apply(src_journals)
       #   end
-      def apply(src_journals)
+      def apply_without_retry(src_journals)
         unless src_journals.kind_of?(Array)
           src_journals = [src_journals]
         end
@@ -178,6 +178,16 @@ module TinyDS
           end
         end
         failed_src_journals
+      end
+      def apply(src_journals, opts={})
+        retries = opts[:retries] || 1
+        retries.times do
+          break if src_journals.empty?
+          src_journals = apply_without_retry(src_journals)
+        end
+        if opts[:raise] && !src_journals.empty?
+          raise "failed to apply #{src_journals.size} journal(s). #{src_journals.collect{|j| j.key }.inspect}"
+        end
       end
 
       def rollforward
