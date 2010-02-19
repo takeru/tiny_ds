@@ -21,6 +21,17 @@ class Base
     property_definitions[name.to_sym] or raise "unknown property='#{name}'"
   end
 
+  def self.valid_property?(name, context) # context => :filter,:sort
+    name = name.to_sym
+    if name==:__key__
+      true
+    elsif property_definitions[name.to_sym]
+      true
+    else
+      false
+    end
+  end
+
   def self.has_property?(name)
     property_definitions.has_key?(name.to_sym)
   end

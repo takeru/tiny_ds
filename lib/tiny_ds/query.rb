@@ -21,13 +21,15 @@ class Query
       end
     else
       name, operator, value = *args
-      @model_class.property_definition(name) # check exist?
+      @model_class.valid_property?(name, :filter)
+      # @model_class.property_definition(name) # check exist?
       @q.filter(name, operator, value)
     end
     self
   end
   def sort(name, dir=:asc)
-    @model_class.property_definition(name) # check exist?
+    @model_class.valid_property?(name, :sort)
+    # @model_class.property_definition(name) # check exist?
     direction = {
       :asc  => AppEngine::Datastore::Query::ASCENDING,
       :desc => AppEngine::Datastore::Query::DESCENDING
