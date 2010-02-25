@@ -33,7 +33,7 @@ module TinyDS
   def batch_get
     raise "todo"
   end
-  def batch_put
-    raise "todo"
+  def self.batch_put(objs)
+    AppEngine::Datastore.put(objs.collect{|o| o.entity })
   end
 end
