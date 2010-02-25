@@ -23,11 +23,11 @@ module TinyDS
     end
     def get_self_and_check_lock_version
       obj = self.class.get(self.key)
-      if self.class.has_property?(:lock_version)
-        if obj.lock_version != self.lock_version
+      if self.class.has_property?(:_lv)
+        if obj._lv != self._lv
           raise StaleObjectError.new
         end
-        obj.lock_version += 1
+        obj._lv += 1
       end
       obj
     end
