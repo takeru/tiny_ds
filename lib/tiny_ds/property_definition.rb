@@ -33,7 +33,12 @@ class PropertyDefinition
     when :float
       v.nil? ? nil : v.to_f
     when :boolean
-      ![nil, false].include?(v)
+      if v==false || v==true || v==nil
+        v
+      else
+        raise "not boolean value."
+      end
+      # ![nil, false].include?(v)
     when :text
       v.nil? ? nil : com.google.appengine.api.datastore::Text.new(v.to_s)
     when :time

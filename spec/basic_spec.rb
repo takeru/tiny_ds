@@ -857,13 +857,107 @@ describe TinyDS::Base do
     end
   end
   describe "boolean property" do
-    it "true/false"
-    it "nil"
-    it "123"
-    it "str"
+    class Book < TinyDS::Base
+      property :comic,   :boolean
+      property :picture, :boolean, :default=>nil
+      property :art,     :boolean, :default=>false
+      property :travel,  :boolean, :default=>true
+    end
+    it "with/without default" do
+      b = Book.new
+      b.comic.should   == nil
+      b.picture.should == nil
+      b.art.should     == false
+      b.travel.should  == true
+      b.save
+      b.comic.should   == nil
+      b.picture.should == nil
+      b.art.should     == false
+      b.travel.should  == true
+
+      b = Book.get(b.key)
+      b.comic.should   == nil
+      b.picture.should == nil
+      b.art.should     == false
+      b.travel.should  == true
+    end
+    it "set value" do
+      b = Book.new
+      b.comic   = true
+      b.picture = false
+      b.art     = nil
+      b.entity[:art].should == nil
+      b.entity.hasProperty(:art).should == false
+      b.travel  = false
+      #b.comic.should   == true
+      #b.picture.should == false
+      #b.art.should     == nil
+      #b.travel.should  == false
+      b.save
+      b.comic.should   == true
+      b.picture.should == false
+      b.art.should     == false # :default=>false
+      b.travel.should  == false
+
+      b = Book.get(b.key)
+      b.comic.should   == true
+      b.picture.should == false
+      b.art.should     == false # default=>false
+      b.travel.should  == false
+    end
+    it "set invalid value" do
+      proc{ Book.new(:comic=>1) }.should raise_error
+      proc{ Book.new(:comic=>"") }.should raise_error
+    end
     it "query"
+  end
+
+  describe "default_value" do
+    class Parent
+    end
+    it "return default_value for nil or missing" do
+      c = Comment.new
+      c.flag.should == 5
+      c.flag = nil
+      c.save
+
+      c = Comment.get(c.key)
+      c.entity[:flag].should == nil
+      c.flag.should == 5
+      c.entity[:flag].should == 5
+    end
+    it "return default_value for added property" do
+      defined?(Food).should be_nil
+      class Parent::Food < TinyDS::Base
+        property :nickname, :string
+      end
+      defined?(Parent::Food).should == "constant"
+      f = Parent::Food.new(:nickname=>"tomato")
+      f.save
+
+      Parent.instance_eval{ remove_const(:Food) }
+      defined?(Parent::Food).should be_nil
+
+      class Parent::Food < TinyDS::Base
+        property :nickname, :string
+        property :color,    :string, :default=>"red"
+      end
+      f = Parent::Food.get(f.key)
+      f.entity[:color].should == nil
+      f.color.should == "red"
+      f.entity[:color].should == "red"
+      f.color = "green"
+      f.color.should == "green"
+      f.entity[:color].should == "green"
+      f.save
+
+      f = Parent::Food.get(f.key)
+      f.color.should == "green"
+      f.entity[:color].should == "green"
+    end
   end
 
   it "build_key"
   it "timeout"
+  it "__key__ query"
 end

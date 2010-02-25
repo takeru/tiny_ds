@@ -303,7 +303,16 @@ class Base
   # get property-value from @entity
   def get_property(k)
     prop_def = self.class.property_definition(k)
-    prop_def.to_ruby_value(@entity[k])
+    v = prop_def.to_ruby_value(@entity[k])
+    if v.nil?
+      if prop_def.has_default?
+        v = prop_def.default_value
+        unless v.nil?
+          set_property(k,v)
+        end
+      end
+    end
+    v
   end
 
   def method_missing(m, *args)
