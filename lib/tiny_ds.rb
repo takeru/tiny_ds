@@ -13,21 +13,21 @@ module TinyDS
   # execute block in new transaction.
   # if current_transaction is exists, no new tx is begin.
   # if force_begin=true, always begin new tx.
-  def self.tx(opts={}, &block)
+  def self.tx(opts={})
     retries = opts[:retries] || 0
     cur_tx = nil
     unless opts[:force_begin]
       cur_tx = AppEngine::Datastore.current_transaction(nil)
     end
     if cur_tx
-      yield(block)
+      yield
     else
       AppEngine::Datastore.transaction(retries){
-        yield(block)
+        yield
       }
     end
   end
-  def self.readonly(&block)
+  def self.readonly
     raise "todo"
   end
   def batch_get
