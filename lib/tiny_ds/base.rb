@@ -146,7 +146,7 @@ class Base
   def do_save
     if @read_only
       # raise "entity is readonly."
-      $app_logger.warn "entity is readonly. key=[#{self.key.inspect}]"
+      logger.warn "entity is readonly. key=[#{self.key.inspect}]"
     end
     __before_save_set_timestamps
 #    if @new_record && @entity.key && parent
@@ -355,6 +355,16 @@ class Base
     else
       super(m, *args)
     end
+  end
+
+  def logger
+    self.class.logger
+  end
+  def self.logger
+    @@logger ||= Logger.new($stderr)
+  end
+  def self.logger=(l)
+    @@logger = l
   end
 end
 end
