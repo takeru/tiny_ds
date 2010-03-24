@@ -42,6 +42,7 @@ class Query
   def count #todo(tx=nil)
     @q.count
   end
+=begin
   def count2
     _count = 0
     max_key = nil
@@ -57,6 +58,35 @@ class Query
       _count += c
       max_key = entries.last.key
       #p ["max_key=", max_key]
+    end
+    _count
+  end
+=end
+  def count3
+    c = @q.count
+    if c<1000
+      return c
+    end
+
+    batch_size = 1000
+    _count = 0
+    max_key = nil
+    loop do
+      #q = AppEngine::Datastore::Query.new(@model_class.kind)
+      #_java_query = @q.java_query.clone # => NativeException: java.lang.CloneNotSupportedException: com.google.appengine.api.datastore.Query
+      #q.instance_eval{ @query = _java_query }
+      q = @q.clone # TODO should clone java_query
+      q.filter(:__key__, ">", max_key) if max_key
+      q.sort(:__key__)
+      q.java_query.setKeysOnly
+      last_entity = q.fetch(:offset=>batch_size-1, :limit=>1).to_a.last
+      if last_entity
+        _count += batch_size
+        max_key = last_entity.key
+      else
+        _count += q.count
+        break
+      end
     end
     _count
   end
