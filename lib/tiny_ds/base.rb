@@ -144,6 +144,10 @@ class Base
   end
 
   def do_save
+    if @read_only
+      # raise "entity is readonly."
+      $app_logger.warn "entity is readonly. key=[#{self.key.inspect}]"
+    end
     __before_save_set_timestamps
 #    if @new_record && @entity.key && parent
 #      TinyDS.tx{
@@ -273,6 +277,24 @@ class Base
       _keys = query.keys(:limit=>500)
       break if _keys.empty?
       destroy(_keys)
+    end
+  end
+
+  # 読み込み専用フラグをセット
+  def read_only
+    @read_only = true
+    self
+  end
+
+  # selfのkeyで取得し直し
+  def reget
+    self.class.get(self.key)
+  end
+
+  def tx(opts={}, &block)
+    TinyDS.tx(opts) do
+      m = self.reget
+      yield(m)
     end
   end
 
