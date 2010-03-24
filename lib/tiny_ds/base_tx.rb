@@ -173,8 +173,9 @@ module TinyDS
           begin
             djk = sj.copy_to_dest_journal
             DestJournal.apply_journal(djk)
-          rescue Object => e
-            failed_src_journals << sj
+          rescue Object => e # CME, DatastoreException*
+            raise e
+            #failed_src_journals << sj
           end
         end
         failed_src_journals

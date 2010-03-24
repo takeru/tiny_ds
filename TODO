@@ -21,3 +21,4 @@
 #   create({...}, {:name_prefix=>"u"}) => prefix+allocate_id
 #   __key__ range query
 #   support reload! on script/console
+#   keysonly query returns array of key. not instance of TinyDS::Base

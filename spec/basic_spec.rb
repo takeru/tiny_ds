@@ -59,6 +59,8 @@ describe TinyDS::Base do
     it "should retried if concurrent modify"
     it "should not overwrite properties modified by other tx"
     it "should not retry when application exception raised"
+    it "should returned tx block value"
+    it "should return from tx block from def"
   end
 
   describe "instance tx_update" do

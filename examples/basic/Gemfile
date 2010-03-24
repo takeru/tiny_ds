@@ -4,5 +4,6 @@ disable_rubygems
 bundle_path ".gems/bundler_gems"
 
 # List gems to bundle here:
-gem 'tiny_ds'
+gem 'appengine-rack', '0.0.6'
+gem 'appengine-apis', '0.0.12'
 gem 'sinatra'
