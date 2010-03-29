@@ -200,7 +200,7 @@ class User < TinyDS::Base
       u1 = User.get(self.key)
       u1.money -= amount
       u1.sent_count += 1
-      src_journal = TinyDS::BaseTx2.build_journal(u1, u2, :apply_recv_money_from, u1.key.to_s, amount)
+      src_journal = TinyDS::BaseTx.build_journal(u1, u2, :apply_recv_money_from, u1.key.to_s, amount)
       TinyDS.batch_save([u1, src_journal])
     end
     src_journal.key
@@ -245,14 +245,14 @@ User.count = #{User.count}<br />
   </tr>
 </table>
 <br />
-SrcJournal.count=<%= TinyDS::BaseTx2::SrcJournal.count %><br />
-DestJournal.count=<%= TinyDS::BaseTx2::DestJournal.count %><br />
+SrcJournal.count=<%= TinyDS::BaseTx::SrcJournal.count %><br />
+DestJournal.count=<%= TinyDS::BaseTx::DestJournal.count %><br />
 END
 end
 
 get "/31_basetx/init" do
   _log "======== /31_basetx/init"
-  [User, TinyDS::BaseTx2::SrcJournal, TinyDS::BaseTx2::DestJournal].each do |klass|
+  [User, TinyDS::BaseTx::SrcJournal, TinyDS::BaseTx::DestJournal].each do |klass|
     klass.destroy_all
     raise "#{klass.name}.count!=0" if klass.count!=0
   end
@@ -274,14 +274,14 @@ get "/31_basetx/exec" do
   src_journal_key = u1.send_money_to(u2, 100)
   if params[:apply]=="t"
     _log "    ==== apply"
-    TinyDS::BaseTx2.apply(src_journal_key)
+    TinyDS::BaseTx.apply(src_journal_key)
   end
   redirect "/31_basetx"
 end
 
 get "/31_basetx/rollforward" do
   _log "======== /31_basetx/rollforward"
-  TinyDS::BaseTx2.apply_pendings
+  TinyDS::BaseTx.apply_pendings
   redirect "/31_basetx"
 end
 
