@@ -280,13 +280,13 @@ class Base
     end
   end
 
-  # 読み込み専用フラグをセット
+  # set readonly flag
   def read_only
     @read_only = true
     self
   end
 
-  # selfのkeyで取得し直し
+  # re-get by self.key for transaction
   def reget
     self.class.get(self.key)
   end

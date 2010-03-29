@@ -128,6 +128,77 @@ describe TinyDS::Base do
     it "should not overwrite properties modified by other tx"
     it "should not retry when application exception raised"
   end
+  
+  describe "instance tx" do
+    it "should updated in tx" do
+      c0 = Comment.create(:body=>"hello", :num=>3)
+      c0.tx do |c|
+        c.num = 5
+        c.save
+      end
+      c0.num.should == 3
+      c0 = c0.reget
+      c0.num.should == 5
+    end
+    it "should not updated in tx" do
+      c0 = Comment.create(:body=>"hello", :num=>3)
+      c0.tx do |c|
+        c.num = 5
+      end
+      c0.num.should == 3
+      c0 = c0.reget
+      c0.num.should == 3
+    end
+
+    def return_in_block(c0)
+      c0.tx do |c|
+        c.num = 10
+        c.save
+        return "result-1"
+      end
+      raise "should not come here"
+    end
+    it "should not commit if 'return' in block" do
+      c0 = Comment.create(:body=>"hello", :num=>3)
+      return_in_block(c0).should == "result-1"
+      c0 = c0.reget
+      c0.num.should == 3
+    end
+
+    def break_in_block(c0)
+      c0.tx do |c|
+        c.num = 10
+        c.save
+        break
+        c.num = 20
+        c.save
+      end
+      return "result-2"
+    end
+    it "should not commit if 'break' in block" do
+      c0 = Comment.create(:body=>"hello", :num=>3)
+      break_in_block(c0).should == "result-2"
+      c0 = c0.reget
+      c0.num.should == 3
+    end
+
+    def next_in_block(c0)
+      c0.tx do |c|
+        c.num = 10
+        c.save
+        next
+        c.num = 20
+        c.save
+      end
+      return "result-3"
+    end
+    it "should commit if 'next' in block" do
+      c0 = Comment.create(:body=>"hello", :num=>3)
+      next_in_block(c0).should == "result-3"
+      c0 = c0.reget
+      c0.num.should == 10
+    end
+  end
 
   describe :property_definitions do
     it "should convert to Text" do
