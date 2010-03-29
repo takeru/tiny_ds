@@ -36,10 +36,10 @@ begin
   end
 
   require 'rubygems'
+  require "logger"
   # require 'appengine-sdk'
   # AppEngine::SDK.load_apiproxy
   require "tiny_ds"
-
   require 'appengine-apis/testing'
   begin
     AppEngine::ApiProxy.get_app_id
@@ -47,6 +47,7 @@ begin
     AppEngine::Testing::install_test_env
   end
   AppEngine::Testing::install_test_datastore
+  $app_logger = Logger.new($stderr)
 rescue Object => e
   puts e.inspect
   pp e.backtrace

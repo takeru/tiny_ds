@@ -98,47 +98,47 @@ module TinyDS
       #
       def apply(src_journal_key, opts={})
         retries = opts[:retries] || 10
-        TinyDS.tx(:retries=>retries, :force_begin=>true){
-          src_journal = SrcJournal.get(src_journal_key)
-          if src_journal.nil?
-            raise "src_journal is nil. src_journal_key=#{src_journal_key}"
-          end
-          if src_journal.status == "done"
-            return nil
-          end
 
-          begin
+        src_journal = SrcJournal.get(src_journal_key) # get without tx
+        if src_journal.nil?
+          raise "src_journal is nil. src_journal_key=#{src_journal_key}"
+        end
+        if src_journal.status == "done"
+          return nil
+        end
+
 # retries = 0
-            force_begin = true
-            if root_key(src_journal.dest_journal_key).equals( root_key(src_journal_key) )
-              force_begin = false # when same EG.
-            end
-            TinyDS.tx(:retries=>retries, :force_begin=>force_begin){
+        TinyDS.tx(:retries=>retries, :force_begin=>true){
 # $app_logger.info "BaseTx2.apply src=[#{src_journal_key.inspect}] dest=[#{src_journal.dest_journal_key.inspect}] retries=#{retries}"
 # retries += 1
-              dest_journal = DestJournal.get(src_journal.dest_journal_key)
-              if dest_journal.nil?
-                klass = const_get(src_journal.dest_class)
-                dest = klass.get(src_journal.dest_key)
-                # TODO if dest.nil? ...
-                entities_to_put = dest.send(src_journal.method_name, *(src_journal.args)).to_a
-                entities_to_put << DestJournal.new({}, :key=>src_journal.dest_journal_key)
-                TinyDS.batch_save(entities_to_put)
-              end
-            }
-            src_journal.status = "done"
-            src_journal.save
-          rescue => e
-            begin
-              src_journal.failed_count += 1
-              src_journal.save
-            rescue => e2
-              # ignore
-            end
-            raise e
+          dest_journal = DestJournal.get(src_journal.dest_journal_key)
+# $app_logger.info "BaseTx2.apply dest_journal.nil?=#{dest_journal.nil?}"
+          if dest_journal.nil?
+            klass = const_get(src_journal.dest_class)
+            dest = klass.get(src_journal.dest_key)
+            # TODO if dest.nil? ...
+            entities_to_put = dest.send(src_journal.method_name, *(src_journal.args)).to_a
+            entities_to_put << DestJournal.new({}, :key=>src_journal.dest_journal_key)
+            TinyDS.batch_save(entities_to_put)
           end
         }
+
+        src_journal.tx(:retries=>retries, :force_begin=>true){|sj|
+          sj.status = "done"
+          sj.save
+        }
         nil
+      rescue => e
+# $app_logger.info "BaseTx2.apply e=#{e.inspect}"
+        begin
+          src_journal.tx(:retries=>retries, :force_begin=>true){|sj|
+            sj.failed_count += 1
+            sj.save
+          }
+        rescue => e2
+          # ignore
+        end
+        raise e
       end
 
       # 実行されていないapplyの実行
