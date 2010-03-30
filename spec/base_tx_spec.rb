@@ -80,6 +80,28 @@ describe "BaseTx" do
         TinyDS::BaseTx.apply_pendings
         common_specs_for_after_apply
       end
+
+      def common_specs_for_after_apply_skip_set_done
+        @userA.reget.money.should        ==  9500
+        @userB.reget.money.should        == 10500
+        @journal.reget.status.should     == "created"
+        TinyDS::BaseTx::SrcJournal.count.should  == 1
+        TinyDS::BaseTx::DestJournal.count.should == 1
+
+        TinyDS::BaseTx.apply(@journal.key)
+
+        @journal.reget.status.should     == "done"
+        @userA.reget.money.should        ==  9500
+        @userB.reget.money.should        == 10500
+      end
+      it "apply by instance skip_set_done" do
+        TinyDS::BaseTx.apply(@journal, :skip_set_done=>true)
+        common_specs_for_after_apply_skip_set_done
+      end
+      it "apply by key skip_set_done" do
+        TinyDS::BaseTx.apply(@journal.key, :skip_set_done=>true)
+        common_specs_for_after_apply_skip_set_done
+      end
     end
   end
 end
