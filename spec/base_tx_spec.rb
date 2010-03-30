@@ -68,11 +68,14 @@ describe "BaseTx" do
         @userB.reget.money.should        == 10500
       end
 
-      it "apply" do
+      it "apply by instance" do
+        TinyDS::BaseTx.apply(@journal)
+        common_specs_for_after_apply
+      end
+      it "apply by key" do
         TinyDS::BaseTx.apply(@journal.key)
         common_specs_for_after_apply
       end
-
       it "apply_pendings" do
         TinyDS::BaseTx.apply_pendings
         common_specs_for_after_apply

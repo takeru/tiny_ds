@@ -37,6 +37,15 @@ module TinyDS
       def args
         YAML.load(self.args_yaml)
       end
+
+      def set_done(retries)
+        self.tx(:retries=>retries, :force_begin=>true){|sj|
+          if sj.status=="created"
+            sj.status = "done"
+            sj.save
+          end
+        }
+      end
     end
 
     # If exist, apply is done.
@@ -96,12 +105,16 @@ module TinyDS
       # If apply_some returns instance of TinyDS::Base (or array of that),
       # they will be saved with dest_journal for reduce RPC calls.
       #
-      def apply(src_journal_key, opts={})
+      def apply(src_journal_or_key, opts={})
         retries = opts[:retries] || 10
 
-        src_journal = SrcJournal.get(src_journal_key) # get without tx
+        src_journal = if src_journal_or_key.kind_of?(SrcJournal)
+                        src_journal_or_key
+                      else
+                        SrcJournal.get(src_journal_or_key) # get without tx
+                      end
         if src_journal.nil?
-          raise "src_journal is nil. src_journal_key=#{src_journal_key}"
+          raise "src_journal is nil. src_journal_or_key=#{src_journal_or_key}"
         end
         if src_journal.status == "done"
           return nil
@@ -123,10 +136,12 @@ module TinyDS
           end
         }
 
-        src_journal.tx(:retries=>retries, :force_begin=>true){|sj|
-          sj.status = "done"
-          sj.save
-        }
+        # If you want return faster, set_done needs about 100ms, skip it.
+        # (and you may need to run apply_pendings in cron or TQ to set_done)
+        # MEMO async put may be good for this.
+        unless opts[:skip_set_done]
+          src_journal.set_done(retries)
+        end
         nil
       rescue => e
 # $app_logger.info "BaseTx.apply e=#{e.inspect}"
@@ -141,14 +156,14 @@ module TinyDS
         raise e
       end
 
-      # 実行されていないapplyの実行
+      # apply pending journals
       def apply_pendings(opts={})
         limit           = opts[:limit]           || 10
         apply_retry_max = opts[:apply_retry_max] || 10
         q = SrcJournal.query.filter(:status=>"created").
                              filter(:failed_count, "<", apply_retry_max)
-        q.sort(:failed_count, :asc).keys_only.each(:limit=>limit) do |src_journal|
-          TinyDS::BaseTx.apply(src_journal.key)
+        q.sort(:failed_count, :asc).each(:limit=>limit) do |src_journal|
+          TinyDS::BaseTx.apply(src_journal)
         end
         nil
       end
