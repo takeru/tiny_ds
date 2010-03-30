@@ -31,6 +31,9 @@ before do
   LogDelegate.enable = (params[:ld]!="f")
 end
 
+class DummyEG < TinyDS::Base
+end
+
 class ManyPropertyKind
   def self.kind_name(count, type, index)
     name = "ManyProperty#{count}_#{type}"
@@ -87,37 +90,59 @@ get '/' do
   html
 end
 
+get '/00warmup' do
+  sleep_sec = (params[:sleep_sec] || 0).to_f
+  if 0<sleep_sec
+    sleep(sleep_sec)
+  end
+  "#{$gae_instance_guid} #{Time.now} sleep_sec=#{sleep_sec}"
+end
+
 # [01props_put] count of property, indexed or not
 get '/01props_put' do
-  count  = params[:count].to_i     # 1,2,4,8,16,32,64,128
-  type   = params[:type].to_sym    # integer/string
-  index  = params[:index]=="true"  # true/false
-  repeat = params[:repeat].to_i    # 
+  count  = params[:count].to_i        # 1,2,4,8,16,32,64,128
+  type   = params[:type].to_sym       # integer/string
+  index  = (params[:index] =~/^t/)==0 # true/false
+  repeat = params[:repeat].to_i       #
+  txn    = (params[:txn]   =~/^t/)==0 # true/false
+  batch  = (params[:batch] =~/^t/)==0 # true/false
 
   klass_name = ManyPropertyKind.kind_name(count, type, index)
   klass = eval(klass_name)
 
-  bench_result = nil
-  api_calls = LogDelegate.instance.collect_logs do
-    bench_result = ds_benchmark do
-      repeat.times do |repeat_count|
-        e = klass.new
-        count.times do |i|
-          e.send("prop_#{type}_#{i}=", rand(10000))
-        end
-        e.save
+  parent_key = nil
+  if txn && batch
+    parent_key = DummyEG.build_key("#{Time.now}_#{rand}", nil)
+  end
+
+  bench_result = ds_benchmark do
+    entities = []
+    repeat.times do |repeat_count|
+      e = klass.new({}, :parent=>parent_key)
+      count.times do |i|
+        e.send("prop_#{type}_#{i}=", rand(10000))
       end
+      unless batch
+        with_txn(txn){
+          e.save
+        }
+      else
+        entities << e
+      end
+    end
+    if batch
+      with_txn(txn){
+        TinyDS.batch_save(entities)
+      }
     end
   end
 
-  pars = {:count=>count, :type=>type, :index=>index, :repeat=>repeat}
-  api_calls_sum = {:real_ms=>api_calls.inject(0){|sum,a| sum+=a[:real_ms] }}
+  pars = {:count=>count, :type=>type, :index=>index, :repeat=>repeat, :txn=>txn, :batch=>batch}
+
   content_type "text/plain"
   return render_result(
     :pars          => pars,
-    :bench_result  => bench_result,
-    :api_calls_sum => api_calls_sum,
-    :api_calls     => api_calls
+    :bench_result  => bench_result
   )
 end
 
@@ -131,23 +156,18 @@ get '/11pbsize_put' do
   size   = params[:size].to_i      # 1,1000,10000,100000,...
   repeat = params[:repeat].to_i    # 
 
-  bench_result = nil
-  api_calls = LogDelegate.instance.collect_logs do
-    bench_result = ds_benchmark do
-      repeat.times do |repeat_count|
-        e = LargeProperty.create(:prop0=>"a"*size)
-      end
+  bench_result = ds_benchmark do
+    repeat.times do |repeat_count|
+      e = LargeProperty.create(:prop0=>"a"*size)
     end
   end
 
   pars = {:size=>size, :repeat=>repeat}
-  api_calls_sum = {:real_ms=>api_calls.inject(0){|sum,a| sum+=a[:real_ms] }}
+
   content_type "text/plain"
   return render_result(
     :pars          => pars,
-    :bench_result  => bench_result,
-    :api_calls_sum => api_calls_sum,
-    :api_calls     => api_calls
+    :bench_result  => bench_result
   )
 end
 
@@ -166,24 +186,19 @@ get '/21list_put' do
 
   klass = index ? ManyItemsListProperty : ManyItemsListPropertyNoIndex
 
-  bench_result = nil
-  api_calls = LogDelegate.instance.collect_logs do
-    bench_result = ds_benchmark do
-      repeat.times do |repeat_count|
-        prop0 = (0...size).to_a.collect{ rand(10000000) }
-        e = klass.create(:prop0=>prop0)
-      end
+  bench_result = ds_benchmark do
+    repeat.times do |repeat_count|
+      prop0 = (0...size).to_a.collect{ rand(10000000) }
+      e = klass.create(:prop0=>prop0)
     end
   end
 
   pars = {:size=>size, :index=>index, :repeat=>repeat}
-  api_calls_sum = {:real_ms=>api_calls.inject(0){|sum,a| sum+=a[:real_ms] }}
+
   content_type "text/plain"
   return render_result(
     :pars          => pars,
-    :bench_result  => bench_result,
-    :api_calls_sum => api_calls_sum,
-    :api_calls     => api_calls
+    :bench_result  => bench_result
   )
 end
 
@@ -285,30 +300,57 @@ get "/31_basetx/rollforward" do
   redirect "/31_basetx"
 end
 
+
+
 # TODO
 # - 「tx内でJournalをbatch_put * 10」「エンティティ内にYAMLでジャーナル」
 # - query(普通にquery, keyonly, count)
-# - batch_put vs put
-# - batch_get vs get
-#   get(PB-size, property-count)
-#   batch_get
-#   batch_put(PB-size,index-count,property-count,...)
-#   memcache(PB-size)
 #   query(result-count,key-only,limit,offset,ancestor,count)
-#   key range query
-#   api_cpu_ms with composite index(one,many...)
-
-
+# - put api_cpu_ms with composite index(one,many...)
+# - batch_get vs get
+# - memcache(PB-size)
+# - key range query
+# - "keyonly-query+batch_get" vs "query"
 
 $qs = com.google.appengine.api.quota.QuotaServiceFactory.getQuotaService
 def ds_benchmark
-  start_api_cycles = $qs.getApiTimeInMegaCycles
-  start_ns = java.lang.System.nanoTime
-  yield
-  real_ms = (java.lang.System.nanoTime - start_ns)/1000000.0
-  api_ms = $qs.convertMegacyclesToCpuSeconds( $qs.getApiTimeInMegaCycles - start_api_cycles )*1000
-  # TODO cpu_ms
-  {:api_ms=>api_ms, :real_ms=>real_ms}
+  bench_result = {}
+  rpc_calls = LogDelegate.instance.collect_logs do
+    begin_api_cycles = $qs.getApiTimeInMegaCycles
+    begin_cpu_cycles = $qs.getCpuTimeInMegaCycles
+    begin_ns         = java.lang.System.nanoTime
+    yield
+    end_ns           = java.lang.System.nanoTime
+    end_cpu_cycles   = $qs.getCpuTimeInMegaCycles
+    end_api_cycles   = $qs.getApiTimeInMegaCycles
+
+    bench_result[:api_ms]  = $qs.convertMegacyclesToCpuSeconds(end_api_cycles - begin_api_cycles)*1000
+    bench_result[:cpu_ms]  = $qs.convertMegacyclesToCpuSeconds(end_cpu_cycles - begin_cpu_cycles)/1000.0
+    bench_result[:real_ms] = (end_ns - begin_ns)/1000000.0
+  end
+  bench_result.merge!(rpc_calls_sum_and_avg(rpc_calls))
+  bench_result[:rpc_calls] = rpc_calls
+  return bench_result
+end
+
+def rpc_calls_sum_and_avg(rpc_calls)
+  rpc_calls_sum = {}
+  rpc_calls_avg = {}
+  [:api_ms, :cpu_ms, :real_ms, :req_size, :resp_size].each do |k|
+    rpc_calls_sum[k] = rpc_calls.inject(0){|sum,a| sum+=a[k] }
+    rpc_calls_avg[k] = rpc_calls_sum[k]/rpc_calls.size
+  end
+  return {:rpc_calls_count=>rpc_calls.size,
+          :rpc_calls_sum=>rpc_calls_sum,
+          :rpc_calls_avg=>rpc_calls_avg}
+end
+
+def with_txn(txn)
+  if txn
+    TinyDS.tx{ yield }
+  else
+    yield
+  end
 end
 
 def __current_quotas

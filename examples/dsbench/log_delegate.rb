@@ -35,10 +35,14 @@ class LogDelegate #implements Delegate<Environment>
 
   def collect_logs
     raise "nested collect_logs call." if @logs
-    @logs = []
-    yield
-    logs = @logs
-    @logs = nil
+    logs = nil
+    begin
+      @logs = []
+      yield
+      logs = @logs
+    ensure
+      @logs = nil
+    end
     logs
   end
   attr_accessor :enable
@@ -53,18 +57,27 @@ class LogDelegate #implements Delegate<Environment>
 
     @qs ||= com.google.appengine.api.quota.QuotaServiceFactory.getQuotaService
 
-    start_api_cycles = @qs.getApiTimeInMegaCycles
-    start_ns = java.lang.System.nanoTime
-    result = @originalDelegate.makeSyncCall(env, service, method, requestBuf);
-    real_ms = (java.lang.System.nanoTime - start_ns)/1000000.0
-    api_mega_cycles = @qs.getApiTimeInMegaCycles - start_api_cycles
-    api_ms = @qs.convertMegacyclesToCpuSeconds(api_mega_cycles)*1000
+    begin_api_cycles = @qs.getApiTimeInMegaCycles
+    begin_cpu_cycles = @qs.getCpuTimeInMegaCycles
+    begin_ns         = java.lang.System.nanoTime
+    result           = @originalDelegate.makeSyncCall(env, service, method, requestBuf);
+    end_ns           = java.lang.System.nanoTime
+    end_cpu_cycles   = @qs.getCpuTimeInMegaCycles
+    end_api_cycles   = @qs.getApiTimeInMegaCycles
+
+    api_ms  = @qs.convertMegacyclesToCpuSeconds(end_api_cycles - begin_api_cycles)*1000
+    cpu_ms  = @qs.convertMegacyclesToCpuSeconds(end_cpu_cycles - begin_cpu_cycles)/1000.0
+    real_ms = (end_ns - begin_ns)/1000000.0
 
     if @logs
-      @logs << {:method=>"makeSyncCall/#{service}/#{method}", :req_size=>requestBuf.length, :resp_size=>result.length, :real_ms=>real_ms, :api_ms=>api_ms}
+      @logs << {:method=>"makeSyncCall/#{service}/#{method}",
+                :req_size=>requestBuf.length,
+                :resp_size=>result.length,
+                :api_ms=>api_ms,
+                :cpu_ms=>cpu_ms,
+                :real_ms=>real_ms }
     end
-    s = "$$$$ makeSyncCall/%12s/%16s | req=%6d | resp=%6d | api_ms=%8.2f real_ms=%8.2f" % [service, method, requestBuf.length, result.length, api_ms, real_ms]
-    #s += " api_mega_cycles=#{api_mega_cycles}"
+    s = "$$$$ makeSyncCall/%12s/%16s | req=%6d | resp=%6d | api_ms=%8.2f cpu_ms=%8.2f real_ms=%8.2f" % [service, method, requestBuf.length, result.length, api_ms, cpu_ms, real_ms]
     if @environment=="production"
       @logger.debug(s)
     elsif @environment=="development"
