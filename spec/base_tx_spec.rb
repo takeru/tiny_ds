@@ -88,7 +88,7 @@ describe "BaseTx" do
         TinyDS::BaseTx::SrcJournal.count.should  == 1
         TinyDS::BaseTx::DestJournal.count.should == 1
 
-        TinyDS::BaseTx.apply(@journal.key)
+        TinyDS::BaseTx.apply_pendings
 
         @journal.reget.status.should     == "done"
         @userA.reget.money.should        ==  9500
