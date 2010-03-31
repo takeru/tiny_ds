@@ -82,6 +82,7 @@ module LowDS
   def self.retry_if_timeout(retries=nil)
     ret = nil
     retries ||= 20
+    sleep_sec = 0.1 # 100ms
     while 0<=retries
       retries -= 1
       begin
@@ -89,7 +90,9 @@ module LowDS
         break
       rescue AppEngine::Datastore::Timeout => ex
         raise ex if retries<=0
-        sleep(0.001)
+        sleep(sleep_sec)
+        sleep_sec *= 2
+        sleep_sec = 1.0 if 1.0<sleep_sec
       end
     end
     ret

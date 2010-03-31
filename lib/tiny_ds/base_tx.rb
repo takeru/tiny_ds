@@ -17,6 +17,7 @@ module TinyDS
 
       # Build src_journal of "src to dest BASE-transaction".
       # src_journal is child of src.
+      # TODO :class_method=>true option. dest_key==nil and set dest_journal_key.
       def self.build_journal(src, dest, method_name, *args)
         if dest.kind_of?(TinyDS::Base)
           dest = {:class=>dest.class.name, :key=>dest.key}
@@ -124,11 +125,14 @@ module TinyDS
         TinyDS.tx(:retries=>retries, :force_begin=>true){
 # $app_logger.info "BaseTx.apply src=[#{src_journal_key.inspect}] dest=[#{src_journal.dest_journal_key.inspect}] retries=#{retries}"
 # retries += 1
-          dest_journal = DestJournal.get(src_journal.dest_journal_key)
+
+          dest_journal, dest = TinyDS.batch_get([
+            [src_journal.dest_journal_key, DestJournal],
+            [src_journal.dest_key,         src_journal.dest_class]
+          ])
+
 # $app_logger.info "BaseTx.apply dest_journal.nil?=#{dest_journal.nil?}"
           if dest_journal.nil?
-            klass = const_get(src_journal.dest_class)
-            dest = klass.get(src_journal.dest_key)
             # TODO if dest.nil? ...
             entities_to_put = dest.send(src_journal.method_name, *(src_journal.args)).to_a
             entities_to_put << DestJournal.new({}, :key=>src_journal.dest_journal_key)
@@ -166,14 +170,6 @@ module TinyDS
           TinyDS::BaseTx.apply(src_journal)
         end
         nil
-      end
-
-      def root_key(key) # AppEngine::Datastore::Key
-        loop do
-          k = key.parent
-          return key if k.nil?
-          key = k
-        end
       end
     end
   end

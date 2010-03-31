@@ -104,4 +104,6 @@ describe "BaseTx" do
       end
     end
   end
+
+  describe "should move money AtoB and AtoC"
 end

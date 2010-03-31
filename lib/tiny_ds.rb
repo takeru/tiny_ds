@@ -9,6 +9,15 @@ require File.dirname(__FILE__)+"/tiny_ds/transaction.rb"
 require File.dirname(__FILE__)+"/tiny_ds/base_tx.rb"
 require File.dirname(__FILE__)+"/tiny_ds/version.rb"
 
+unless defined?(constantize)
+  def constantize(camel_cased_word)
+    unless /\A(?:::)?([A-Z]\w*(?:::[A-Z]\w*)*)\z/ =~ camel_cased_word
+      raise NameError, "#{camel_cased_word.inspect} is not a valid constant name!"
+    end
+    Object.module_eval("::#{$1}", __FILE__, __LINE__)
+  end
+end
+
 module TinyDS
   # execute block in new transaction.
   # if current_transaction is exists, no new tx is begin.
@@ -36,8 +45,28 @@ module TinyDS
   def self.readonly
     raise "todo"
   end
-  def batch_get
-    raise "todo"
+
+  # key_and_classes is like : [key, key, [key, User], [key, "User"]...]
+  # default class is entity's kind.
+  def self.batch_get(key_and_classes)
+    _key_and_classes = key_and_classes.collect{|key,klass|
+      key = TinyDS::Base.to_key(key)
+      if klass.nil? || klass.kind_of?(String)
+        klass ||= key.kind
+        klass = constantize(klass)
+      end
+      [key, klass]
+    }
+    entities = LowDS.batch_get(_key_and_classes.collect{|key,klass| key })
+    objs = []
+    entities.zip(_key_and_classes) do |ent,(key,klass)|
+      objs << if ent
+                klass.new_from_entity(ent)
+              else
+                nil
+              end
+    end
+    objs
   end
   def self.batch_put(objs)
     AppEngine::Datastore.put(objs.collect{|o| o.entity })

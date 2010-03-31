@@ -225,17 +225,10 @@ class Base
 
   # batch get
   def self.get_by_ids(ids, parent=nil)
-    keys = ids.collect{|id| build_key(id, parent) }
-    entities = LowDS.batch_get(keys)
-    objs = entities.collect do |ent|
-      if ent
-        raise "kind missmatch. #{ent.kind}!=#{self.kind}" if ent.kind != self.kind
-        self.new_from_entity(ent)
-      else
-        nil
-      end
-    end
-    objs
+    key_and_classes = ids.collect{|id|
+      [build_key(id, parent), self]
+    }
+    TinyDS.batch_get(key_and_classes)
   end
   def self.get_by_names(names, parent=nil)
     get_by_ids(names, parent)
