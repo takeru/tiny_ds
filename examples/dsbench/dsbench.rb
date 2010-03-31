@@ -239,3 +239,53 @@ def parse_21list_put
   end
 end
 
+def run_31basetx
+#  do_run_00warmup(20, 0.5, 10)
+
+  thread_count =  20 # 10
+  loop_count   =  50 # 50
+  entity_count =   5 #100
+  apply        = "t"
+  ld           = "f"
+
+  url = $url_base + "/31_basetx/init?num=#{entity_count}"
+  open(url) do |f|
+    sync_puts(f.read)
+  end
+
+  threads = []
+  thread_count.times do |_thread_no|
+    t = Thread.new(_thread_no) do |thread_no|
+      loop_count.times do |loop_no|
+        _apply = if apply=="rand"
+                   loop_no%2==0 ? "t" : "f"
+                 else
+                   apply
+                 end
+        begin
+          s = StringIO.new
+          s.puts "#### thread_no=#{thread_no} loop_no=#{loop_no} apply=#{apply} _apply=#{_apply} ld=#{ld}"
+          #url = $url_base + "/31_basetx/exec?apply=#{_apply}&ld=#{ld}"
+          host = $url_base[/\/\/(.+)/, 1]
+          port = 80
+          path = "/31_basetx/exec?count=#{entity_count}&apply=#{_apply}&ld=#{ld}"
+          #open(url) do |f|
+          #  s.puts f.status.inspect
+          #end
+          Net::HTTP.start(host, port){|http| # without redirect
+            response = http.get(path)
+            s.puts "#{response.code} #{response.message} #{response.body}"
+          }
+          sync_puts s.string
+        rescue OpenURI::HTTPError => e
+          sync_puts "thread_no=#{thread_no} loop_no=#{loop_no} #{e.inspect}"
+          retry
+        end
+      end
+    end
+    threads << t
+  end
+  threads.each do |t|
+    t.join
+  end
+end

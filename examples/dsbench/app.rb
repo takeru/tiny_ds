@@ -260,8 +260,8 @@ User.count = #{User.count}<br />
   </tr>
 </table>
 <br />
-SrcJournal.count=<%= TinyDS::BaseTx::SrcJournal.count %><br />
-DestJournal.count=<%= TinyDS::BaseTx::DestJournal.count %><br />
+SrcJournal.count=<%= TinyDS::BaseTx::SrcJournal.query.count3 %><br />
+DestJournal.count=<%= TinyDS::BaseTx::DestJournal.query.count3 %><br />
 END
 end
 
