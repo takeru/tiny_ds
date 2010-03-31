@@ -2,11 +2,13 @@ module TinyDS
   class BaseTx
     class SrcJournal < ::TinyDS::Base
       property :dest_class,         :string, :index=>false
-      property :dest_key,           :string
+      property :dest_key,           :string, :index=>false
       property :method_name,        :string, :index=>false
       property :args_yaml,          :text
-      property :status,             :string # "created" => "done"
+      property :status,             :string # "created" => "done" (too many fail => "error"???)
       property :failed_count,       :integer, :default=>0
+      property :is_created_src_key, :string # set src_key  if status is "created"
+      property :is_created_dest_key,:string # set dest_key if status is "created"
       property :updated_at,         :time
       property :created_at,         :time
 
@@ -22,13 +24,15 @@ module TinyDS
         if dest.kind_of?(TinyDS::Base)
           dest = {:class=>dest.class.name, :key=>dest.key}
         end
-        SrcJournal.new({
+        sj = SrcJournal.new({
                     :dest_class  => dest[:class],
                     :dest_key    => dest[:key].to_s,
                     :method_name => method_name.to_s,
                     :args_yaml   => args.to_yaml,
                     :status      => "created"
                    }, :parent=>src)
+        sj.set_is_created_keys
+        return sj
       end
 
       def dest_journal_key
@@ -39,13 +43,41 @@ module TinyDS
         YAML.load(self.args_yaml)
       end
 
-      def set_done(retries)
+      def tx_set_done(retries)
         self.tx(:retries=>retries, :force_begin=>true){|sj|
           if sj.status=="created"
             sj.status = "done"
+            sj.set_is_created_keys
             sj.save
           end
         }
+      end
+
+      def tx_increment_failed_count(retries)
+        self.tx(:retries=>retries, :force_begin=>true){|sj|
+          sj.failed_count += 1
+          sj.save
+        }
+      end
+
+      def set_is_created_keys
+        if self.status=="created"
+          self.is_created_src_key  = self.parent_key.to_s
+          self.is_created_dest_key = self.dest_key
+        else
+          self.is_created_src_key  = nil
+          self.is_created_dest_key = nil
+        end
+      end
+
+      def self.query_created_by_src_key(k)
+        k = k.to_s if k.kind_of?(AppEngine::Datastore::Key)
+        self.query.filter(:is_created_src_key=>k)
+      end
+
+      def self.query_created_by_dest_key(k)
+        k = k.to_s if k.kind_of?(AppEngine::Datastore::Key)
+        self.query.filter(:is_created_dest_key=>k)
       end
     end
 
@@ -144,16 +176,13 @@ module TinyDS
         # (and you may need to run apply_pendings in cron or TQ to set_done)
         # MEMO async put may be good for this.
         unless opts[:skip_set_done]
-          src_journal.set_done(retries)
+          src_journal.tx_set_done(retries)
         end
         nil
       rescue => e
 # $app_logger.info "BaseTx.apply e=#{e.inspect}"
         begin
-          src_journal.tx(:retries=>retries, :force_begin=>true){|sj|
-            sj.failed_count += 1
-            sj.save
-          }
+          src_journal.tx_increment_failed_count
         rescue => e2
           # ignore
         end

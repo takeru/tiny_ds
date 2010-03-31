@@ -80,6 +80,24 @@ describe "BaseTx" do
         TinyDS::BaseTx.apply_pendings
         common_specs_for_after_apply
       end
+      it "apply by query_created_by_src_key" do
+        q = TinyDS::BaseTx::SrcJournal.query_created_by_src_key(@userA.key)
+        q.count.should == 1
+        q.each do |sj|
+          TinyDS::BaseTx.apply(sj)
+        end
+        common_specs_for_after_apply
+        q.count.should == 0
+      end
+      it "apply by query_created_by_dest_key" do
+        q = TinyDS::BaseTx::SrcJournal.query_created_by_dest_key(@userB.key)
+        q.count.should == 1
+        q.each do |sj|
+          TinyDS::BaseTx.apply(sj)
+        end
+        common_specs_for_after_apply
+        q.count.should == 0
+      end
 
       def common_specs_for_after_apply_skip_set_done
         @userA.reget.money.should        ==  9500
