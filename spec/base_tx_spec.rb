@@ -53,6 +53,11 @@ describe "BaseTx" do
         @journal.reget.created_at.should_not be_nil
         TinyDS::BaseTx::SrcJournal.count.should  == 1
         TinyDS::BaseTx::DestJournal.count.should == 0
+
+        TinyDS::BaseTx::SrcJournal.query.each{|sj|
+          sj.is_created_src_key.should_not  be_nil
+          sj.is_created_dest_key.should_not be_nil
+        }
       end
 
       def common_specs_for_after_apply
@@ -66,6 +71,11 @@ describe "BaseTx" do
 
         @userA.reget.money.should        ==  9500
         @userB.reget.money.should        == 10500
+
+        TinyDS::BaseTx::SrcJournal.query.each{|sj|
+          sj.is_created_src_key.should  be_nil
+          sj.is_created_dest_key.should be_nil
+        }
       end
 
       it "apply by instance" do
@@ -111,6 +121,11 @@ describe "BaseTx" do
         @journal.reget.status.should     == "done"
         @userA.reget.money.should        ==  9500
         @userB.reget.money.should        == 10500
+
+        TinyDS::BaseTx::SrcJournal.query.each{|sj|
+          sj.is_created_src_key.should  be_nil
+          sj.is_created_dest_key.should be_nil
+        }
       end
       it "apply by instance skip_set_done" do
         TinyDS::BaseTx.apply(@journal, :skip_set_done=>true)
