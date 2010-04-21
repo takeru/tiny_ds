@@ -80,22 +80,38 @@ module LowDS
   end
 
   def self.retry_if_timeout(retries=nil)
-    ret = nil
-    retries ||= 20
+    retries ||= 5
     sleep_sec = 0.1 # 100ms
     while 0<=retries
       retries -= 1
       begin
-        ret = yield
-        break
-      rescue AppEngine::Datastore::Timeout => ex
+        return yield
+      rescue => ex
+        case ex
+        when AppEngine::Datastore::Timeout
+          # timeout!
+        when com.google.apphosting.api.ApiProxy::ApiDeadlineExceededException
+          # timeout!
+        when com.google.apphosting.api.ApiProxy::ApplicationException
+          if ex.message =~ /ApplicationError: 5: Unknown/
+            # maybe timeout
+            TinyDS::Base.logger.warn "TinyDS:maybe_timeout #{ex.message}"
+          else
+            raise ex
+          end
+        else
+          raise ex
+        end
+
+        # process timeout errors
+        TinyDS::Base.logger.warn "TinyDS:retry_if_timeout retries=#{retries} ex=#{ex.inspect}"
         raise ex if retries<=0
         sleep(sleep_sec)
         sleep_sec *= 2
         sleep_sec = 1.0 if 1.0<sleep_sec
       end
     end
-    ret
+    raise "TinyDS:too_many_retry"
   end
 end
 end

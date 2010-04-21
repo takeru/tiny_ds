@@ -40,7 +40,9 @@ class Query
     self
   end
   def count #todo(tx=nil)
-    @q.count
+    TinyDS::LowDS.retry_if_timeout do
+      @q.count
+    end
   end
 =begin
   def count2
@@ -91,36 +93,70 @@ class Query
     _count
   end
   def one #todo(tx=nil)
-    if @q.entity
-      @model_class.new_from_entity(@q.entity)
-    else
-      nil
+    TinyDS::LowDS.retry_if_timeout do
+      if @q.entity
+        @model_class.new_from_entity(@q.entity)
+      else
+        nil
+      end
     end
   end
   def all(opts={}) #todo(tx=nil)
     models = []
-    @q.each(opts) do |entity|
-      models << @model_class.new_from_entity(entity)
+    TinyDS::LowDS.retry_if_timeout do
+      # @q.each(opts) do |entity|
+      #   models << @model_class.new_from_entity(entity)
+      # end
+      index = 0
+      @q.each(opts) do |entity|
+        break if opts[:limit] && opts[:limit]<=index
+        index += 1
+        models << @model_class.new_from_entity(entity)
+      end
     end
     models
   end
   def each(opts={}) #todo(tx=nil)
-    @q.each(opts) do |entity|
-      yield(@model_class.new_from_entity(entity))
+    TinyDS::LowDS.retry_if_timeout do
+      # @q.each(opts) do |entity|
+      #   yield(@model_class.new_from_entity(entity))
+      # end
+      index = 0
+      @q.each(opts) do |entity|
+        break if opts[:limit] && opts[:limit]<=index
+        index += 1
+        yield(@model_class.new_from_entity(entity))
+      end
     end
   end
   def collect(opts={}) #todo(tx=nil)
     collected = []
-    @q.each(opts) do |entity|
-      collected << yield(@model_class.new_from_entity(entity))
+    TinyDS::LowDS.retry_if_timeout do
+      # @q.each(opts) do |entity|
+      #   collected << yield(@model_class.new_from_entity(entity))
+      # end
+      index = 0
+      @q.each(opts) do |entity|
+        break if opts[:limit] && opts[:limit]<=index
+        index += 1
+        collected << yield(@model_class.new_from_entity(entity))
+      end
     end
     collected
   end
   def keys(opts={}) #todo(tx=nil)
     keys = []
     self.keys_only
-    @q.each(opts) do |entity|
-      keys << entity.key
+    TinyDS::LowDS.retry_if_timeout do
+      # @q.each(opts) do |entity|
+      #   keys << entity.key
+      # end
+      index = 0
+      @q.each(opts) do |entity|
+        break if opts[:limit] && opts[:limit]<=index
+        index += 1
+        keys << entity.key
+      end
     end
     keys
   end

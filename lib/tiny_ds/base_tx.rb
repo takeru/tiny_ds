@@ -45,6 +45,8 @@ module TinyDS
 
       def tx_set_done(retries)
         self.tx(:retries=>retries, :force_begin=>true){|sj|
+          # ここでsjがnilのときがまれにある
+          # tx-batch-put直後のtx-getで取れないときがある？
           if sj.status=="created"
             sj.status = "done"
             sj.set_is_created_keys
@@ -166,7 +168,8 @@ module TinyDS
 # $app_logger.info "BaseTx.apply dest_journal.nil?=#{dest_journal.nil?}"
           if dest_journal.nil?
             # TODO if dest.nil? ...
-            entities_to_put = dest.send(src_journal.method_name, *(src_journal.args)).to_a
+            entities_to_put = dest.send(src_journal.method_name, *(src_journal.args))
+            entities_to_put = [entities_to_put] unless entities_to_put.kind_of?(Array)
             entities_to_put << DestJournal.new({}, :key=>src_journal.dest_journal_key)
             TinyDS.batch_save(entities_to_put)
           end

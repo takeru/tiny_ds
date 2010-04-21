@@ -588,7 +588,7 @@ describe TinyDS::Base do
       end
       # -1.0,-0.9,...,0.0,0.1,....,0.3,0.4
     end
-    it "should fetched all" do
+    it "should fetched keys" do
       Comment.query.count.should == 15
       Comment.query.keys.size.should == 15
       Comment.query.keys.each do |k|
@@ -633,10 +633,15 @@ describe TinyDS::Base do
       comments[ 8, 7].all?{|c| c.num==50 && c.title=="AAA" }.should be_true
     end
     it "should be limited/offseted" do
-      Comment.query.sort(:title).sort(:num).all(:limit=>5).each do |c|
+      comments = Comment.query.sort(:title).sort(:num).all(:limit=>5)
+      comments.size.should == 5
+      comments.each do |c|
         c.title.should == "AAA"; c.num.should == 10
       end
-      Comment.query.sort(:title).sort(:num).all(:offset=>5, :limit=>7).each do |c|
+
+      comments = Comment.query.sort(:title).sort(:num).all(:offset=>5, :limit=>7)
+      comments.size.should == 7
+      comments.each do |c|
         c.title.should == "AAA"; c.num.should == 50
       end
     end
