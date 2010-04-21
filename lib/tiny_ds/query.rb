@@ -108,8 +108,13 @@ class Query
       #   models << @model_class.new_from_entity(entity)
       # end
       index = 0
+# _opts = opts.dup; _opts.delete(:limit)
+# @q.each(_opts) do |entity|
       @q.each(opts) do |entity|
-        break if opts[:limit] && opts[:limit]<=index
+        if opts[:limit] && opts[:limit]<=index
+          TinyDS::Base.logger.warn "too_many_results: all limit=#{opts[:limit]} index=#{index}"
+          break
+        end
         index += 1
         models << @model_class.new_from_entity(entity)
       end
@@ -123,7 +128,10 @@ class Query
       # end
       index = 0
       @q.each(opts) do |entity|
-        break if opts[:limit] && opts[:limit]<=index
+        if opts[:limit] && opts[:limit]<=index
+          TinyDS::Base.logger.warn "too_many_results: each limit=#{opts[:limit]} index=#{index}"
+          break
+        end
         index += 1
         yield(@model_class.new_from_entity(entity))
       end
@@ -137,7 +145,10 @@ class Query
       # end
       index = 0
       @q.each(opts) do |entity|
-        break if opts[:limit] && opts[:limit]<=index
+        if opts[:limit] && opts[:limit]<=index
+          TinyDS::Base.logger.warn "too_many_results: collect limit=#{opts[:limit]} index=#{index}"
+          break
+        end
         index += 1
         collected << yield(@model_class.new_from_entity(entity))
       end
@@ -153,7 +164,10 @@ class Query
       # end
       index = 0
       @q.each(opts) do |entity|
-        break if opts[:limit] && opts[:limit]<=index
+        if opts[:limit] && opts[:limit]<=index
+          TinyDS::Base.logger.warn "too_many_results: keys limit=#{opts[:limit]} index=#{index}"
+          break
+        end
         index += 1
         keys << entity.key
       end
