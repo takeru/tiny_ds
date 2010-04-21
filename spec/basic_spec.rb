@@ -28,7 +28,7 @@ end
 
 describe TinyDS::Base do
   before :all do
-    AppEngine::Testing.install_test_env
+    #AppEngine::Testing.install_test_env
     AppEngine::Testing.install_test_datastore
   end
 

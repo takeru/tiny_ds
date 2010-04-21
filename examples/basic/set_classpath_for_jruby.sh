@@ -1,7 +1,7 @@
 # source set_classpath_for_jruby.sh
 
 PROJ_HOME=$(cd $(dirname $0);pwd)
-GAE_VER=1.3.0
+GAE_VER=1.3.2
 APPENGINE_SDK_GEM=/opt/local/lib/ruby/gems/1.8/gems/appengine-sdk-$GAE_VER
 
 CLASSPATH=""

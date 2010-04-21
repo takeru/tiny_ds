@@ -41,10 +41,16 @@ begin
   # AppEngine::SDK.load_apiproxy
   require "tiny_ds"
   require 'appengine-apis/testing'
-  begin
-    AppEngine::ApiProxy.get_app_id
-  rescue NoMethodError
-    AppEngine::Testing::install_test_env
+  if true 
+    # 1.3.2
+    AppEngine::Testing.setup
+  else
+    # 1.3.0
+    begin
+      AppEngine::ApiProxy.get_app_id
+    rescue NoMethodError
+      AppEngine::Testing::install_test_env
+    end
   end
   AppEngine::Testing::install_test_datastore
   $app_logger = Logger.new($stderr)
