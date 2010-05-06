@@ -110,7 +110,7 @@ class Query
       index = 0
 # _opts = opts.dup; _opts.delete(:limit)
 # @q.each(_opts) do |entity|
-      @q.each(opts) do |entity|
+      @q.each(opts.dup) do |entity| # memo:http://codereview.appspot.com/962044
         if opts[:limit] && opts[:limit]<=index
           TinyDS::Base.logger.warn "too_many_results: all limit=#{opts[:limit]} index=#{index}"
           break
@@ -127,7 +127,7 @@ class Query
       #   yield(@model_class.new_from_entity(entity))
       # end
       index = 0
-      @q.each(opts) do |entity|
+      @q.each(opts.dup) do |entity| # memo:http://codereview.appspot.com/962044
         if opts[:limit] && opts[:limit]<=index
           TinyDS::Base.logger.warn "too_many_results: each limit=#{opts[:limit]} index=#{index}"
           break
@@ -144,7 +144,7 @@ class Query
       #   collected << yield(@model_class.new_from_entity(entity))
       # end
       index = 0
-      @q.each(opts) do |entity|
+      @q.each(opts.dup) do |entity| # memo:http://codereview.appspot.com/962044
         if opts[:limit] && opts[:limit]<=index
           TinyDS::Base.logger.warn "too_many_results: collect limit=#{opts[:limit]} index=#{index}"
           break
@@ -163,7 +163,7 @@ class Query
       #   keys << entity.key
       # end
       index = 0
-      @q.each(opts) do |entity|
+      @q.each(opts.dup) do |entity| # memo:http://codereview.appspot.com/962044
         if opts[:limit] && opts[:limit]<=index
           TinyDS::Base.logger.warn "too_many_results: keys limit=#{opts[:limit]} index=#{index}"
           break
