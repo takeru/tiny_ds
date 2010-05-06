@@ -224,6 +224,12 @@ class Base
   end
 
   # batch get
+  def self.get_by_keys(keys)
+    key_and_classes = keys.collect{|key|
+      [key, self]
+    }
+    TinyDS.batch_get(key_and_classes)
+  end
   def self.get_by_ids(ids, parent=nil)
     key_and_classes = ids.collect{|id|
       [build_key(id, parent), self]
