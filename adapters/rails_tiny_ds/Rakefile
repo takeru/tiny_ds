@@ -2,11 +2,11 @@ require 'rubygems'
 require 'rake/gempackagetask'
 require File.dirname(__FILE__) + '/../../lib/tiny_ds/version'
 
-RAILS_VERSION = "2.3.5"
+RAILS_VERSION = "2.3.8"
 
 spec = Gem::Specification.new do |s|
   s.name = "rails_tiny_ds"
-  s.version = TinyDS::VERSION
+  s.version = "0.0.2.1" #TinyDS::VERSION
   s.platform = Gem::Platform::RUBY
   s.has_rdoc = false
   s.extra_rdoc_files = ["README.rdoc", "LICENSE"]
@@ -20,7 +20,7 @@ spec = Gem::Specification.new do |s|
   s.require_path = 'lib'
   s.files = %w(LICENSE README.rdoc Rakefile) +
             Dir.glob("generators/**/*") + Dir.glob("lib/**/*") 
-  s.add_dependency 'tiny_ds', "#{TinyDS::VERSION}"
+  s.add_dependency 'tiny_ds', "0.0.2" #"#{TinyDS::VERSION}"
   s.add_dependency 'rails', "#{RAILS_VERSION}"
 end
 
