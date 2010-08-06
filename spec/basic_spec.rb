@@ -599,6 +599,12 @@ describe TinyDS::Base do
       Comment.query.filter(:num,   "==", 10).count.should == 8
       Comment.query.filter(:title, "==", "AAA").all.size.should == 12
       Comment.query.filter(:num,   "==", 10).filter(:title, "==", "AAA").all.size.should == 5
+      Comment.query.filter(:title, "==", "AAA").each do |c|
+        c.title.should == "AAA"
+      end
+      titles = Comment.query.filter(:title, "==", "AAA").collect{|c| c.title }
+      titles.size.should == 12
+      titles.all?{|t| t=="AAA" }.should be_true
     end
     it "should fetched by eq (hash)" do
       Comment.query.filter(:num=>10).count.should == 8

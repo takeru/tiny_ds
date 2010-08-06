@@ -102,73 +102,35 @@ class Query
     end
   end
   def all(opts={}) #todo(tx=nil)
-    models = []
+    models = nil
     TinyDS::LowDS.retry_if_timeout do
-      # @q.each(opts) do |entity|
-      #   models << @model_class.new_from_entity(entity)
-      # end
-      index = 0
-# _opts = opts.dup; _opts.delete(:limit)
-# @q.each(_opts) do |entity|
+      models = []
       @q.each(opts.dup) do |entity| # memo:http://codereview.appspot.com/962044
-        if opts[:limit] && opts[:limit]<=index
-          TinyDS::Base.logger.warn "too_many_results: all limit=#{opts[:limit]} index=#{index}"
-          break
-        end
-        index += 1
         models << @model_class.new_from_entity(entity)
       end
     end
     models
   end
   def each(opts={}) #todo(tx=nil)
-    TinyDS::LowDS.retry_if_timeout do
-      # @q.each(opts) do |entity|
-      #   yield(@model_class.new_from_entity(entity))
-      # end
-      index = 0
-      @q.each(opts.dup) do |entity| # memo:http://codereview.appspot.com/962044
-        if opts[:limit] && opts[:limit]<=index
-          TinyDS::Base.logger.warn "too_many_results: each limit=#{opts[:limit]} index=#{index}"
-          break
-        end
-        index += 1
-        yield(@model_class.new_from_entity(entity))
-      end
+    # Don't retry. use all() if need retry.
+    @q.each(opts.dup) do |entity| # memo:http://codereview.appspot.com/962044
+      yield(@model_class.new_from_entity(entity))
     end
   end
   def collect(opts={}) #todo(tx=nil)
+    # Don't retry. use all() if need retry.
     collected = []
-    TinyDS::LowDS.retry_if_timeout do
-      # @q.each(opts) do |entity|
-      #   collected << yield(@model_class.new_from_entity(entity))
-      # end
-      index = 0
-      @q.each(opts.dup) do |entity| # memo:http://codereview.appspot.com/962044
-        if opts[:limit] && opts[:limit]<=index
-          TinyDS::Base.logger.warn "too_many_results: collect limit=#{opts[:limit]} index=#{index}"
-          break
-        end
-        index += 1
-        collected << yield(@model_class.new_from_entity(entity))
-      end
+    @q.each(opts.dup) do |entity| # memo:http://codereview.appspot.com/962044
+      collected << yield(@model_class.new_from_entity(entity))
     end
     collected
   end
   def keys(opts={}) #todo(tx=nil)
-    keys = []
-    self.keys_only
+    keys = nil
     TinyDS::LowDS.retry_if_timeout do
-      # @q.each(opts) do |entity|
-      #   keys << entity.key
-      # end
-      index = 0
+      keys = []
+      self.keys_only
       @q.each(opts.dup) do |entity| # memo:http://codereview.appspot.com/962044
-        if opts[:limit] && opts[:limit]<=index
-          TinyDS::Base.logger.warn "too_many_results: keys limit=#{opts[:limit]} index=#{index}"
-          break
-        end
-        index += 1
         keys << entity.key
       end
     end
