@@ -78,4 +78,50 @@ module TinyDS
     end
     batch_put(objs)
   end
+
+  # replace keys in struct(hash or array) with entity-object.
+  def self.batch_get_by_struct!(struct)
+    keys = []
+    deep_each(struct) do |item|
+      if item.kind_of?(AppEngine::Datastore::Key)
+        keys << item
+      end
+    end
+    objs = batch_get(keys)
+    keystr_to_obj = {}
+    keys.zip(objs){|k,o| keystr_to_obj[k.to_s]=o }
+    deep_each(struct, :replace=>true) do |item|
+      if item.kind_of?(AppEngine::Datastore::Key)
+        keystr_to_obj[item.to_s]
+      else
+        item
+      end
+    end
+    struct
+  end
+
+  def self.deep_each(obj, opts={}, &proc)
+    case obj
+    when Hash
+      if opts[:replace]
+        obj.each_pair do |key, value|
+          obj[key] = deep_each(value, opts, &proc)
+        end
+      else
+        obj.each_pair do |key, value|
+          deep_each(value, opts, &proc)
+        end
+      end
+    when Array
+      if opts[:replace]
+        obj.collect!{|value| deep_each(value, opts, &proc)}
+      else
+        obj.each{|value|
+          deep_each(value, opts, &proc)
+        }
+      end
+    else
+      proc.call(obj)
+    end
+  end
 end

@@ -5,6 +5,6 @@ bundle_path ".gems/bundler_gems"
 
 # List gems to bundle here:
 gem 'appengine-rack', '0.0.7'
-gem 'appengine-apis', '0.0.14'
+gem 'appengine-apis', '0.0.15'
 gem 'sinatra'
 gem 'rack',           '1.0.1'

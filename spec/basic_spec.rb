@@ -1035,6 +1035,63 @@ describe TinyDS::Base do
     end
   end
 
+  describe "batch_get_by_struct" do
+    before :all do
+      @c1 = Comment.create(:num=>1)
+      @c2 = Comment.create(:num=>2)
+      @c3 = Comment.create(:num=>3)
+      @c4 = Comment.create(:num=>4)
+      @c5 = Comment.create(:num=>5)
+      @c6 = Comment.new({:num=>6}, {:id=>6})
+      @c6.key.inspect.should == "Comment(6)"
+    end
+    it "should work with array-array" do
+      struct = [
+                [1, @c1.key],
+                [2, @c2.key],
+                [3, @c3.key],
+                [4,5,[@c4.key,@c5.key],"str",:sym,nil],
+                [6, @c6.key]
+               ]
+      TinyDS.batch_get_by_struct!(struct)
+      struct[0][0].should == 1
+      struct[0][1].should be_kind_of(Comment)
+      struct[0][1].key.should == @c1.key
+      struct[1][0].should == 2
+      struct[1][1].should be_kind_of(Comment)
+      struct[1][1].key.should == @c2.key
+      struct[2][0].should == 3
+      struct[2][1].should be_kind_of(Comment)
+      struct[2][1].key.should == @c3.key
+      struct[3][0].should == 4
+      struct[3][1].should == 5
+      struct[3][2][0].key.should == @c4.key
+      struct[3][2][1].key.should == @c5.key
+      struct[3][3].should == "str"
+      struct[3][4].should == :sym
+      struct[3][5].should be_nil
+      struct[4][0].should == 6
+      struct[4][1].should be_nil
+      struct.flatten.size.should == 15
+    end
+    it "should work with hash-hash" do
+      struct = {1   => @c1.key,
+                2   => @c2.key,
+                345 => {3=>@c3.key, 45=>{4=>@c4.key, 5=>@c5.key, 6=>@c6.key}}
+               }
+      TinyDS.batch_get_by_struct!(struct)
+      struct.size.should == 3
+      struct[1].key.should == @c1.key
+      struct[2].key.should == @c2.key
+      struct[345].size.should == 2
+      struct[345][3].key.should == @c3.key
+      struct[345][45].size.should == 3
+      struct[345][45][4].key.should == @c4.key
+      struct[345][45][5].key.should == @c5.key
+      struct[345][45][6].should be_nil
+    end
+  end
+
   it "build_key"
   it "timeout"
   it "__key__ query"
