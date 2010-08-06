@@ -49,6 +49,9 @@ module TinyDS
   # key_and_classes is like : [key, key, [key, User], [key, "User"]...]
   # default class is entity's kind.
   def self.batch_get(key_and_classes)
+    if key_and_classes.empty?
+      return []
+    end
     _key_and_classes = key_and_classes.collect{|key,klass|
       key = TinyDS::Base.to_key(key)
       if klass.nil? || klass.kind_of?(String)
