@@ -8,6 +8,7 @@ require File.dirname(__FILE__)+"/tiny_ds/validations.rb"
 require File.dirname(__FILE__)+"/tiny_ds/transaction.rb"
 require File.dirname(__FILE__)+"/tiny_ds/base_tx.rb"
 require File.dirname(__FILE__)+"/tiny_ds/version.rb"
+require File.dirname(__FILE__)+"/tiny_ds/debug.rb"
 
 unless defined?(constantize)
   def constantize(camel_cased_word)
