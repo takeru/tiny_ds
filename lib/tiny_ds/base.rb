@@ -137,6 +137,18 @@ class Base
     @new_record
   end
 
+  def persisted?
+    !new_record?
+  end
+
+  def to_param
+    self.key.to_s if persisted?
+  end
+
+  def to_key
+    [self.key] if persisted?
+  end
+
   # foo.save
   def save
     do_save

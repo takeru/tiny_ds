@@ -1,7 +1,15 @@
 require "pp"
 $:.push File.join(File.dirname(__FILE__), '..', 'lib')
 begin
+  require 'rubygems'
   require "java"
+  require 'rspec'
+  require 'rspec/unit'
+  Dir["#{File.dirname(__FILE__)}/helpers/*.rb"].each do |file|
+    require file
+  end
+  require 'appengine-apis'
+  require 'appengine-api-1.0-sdk-1.4.0.jar'
   if false
     puts "======="
     puts "$LOAD_PATH"
@@ -52,6 +60,7 @@ begin
       AppEngine::Testing::install_test_env
     end
   end
+  at_exit {java.lang.System.exit(0)}
   AppEngine::Testing::install_test_datastore
   $app_logger = Logger.new($stderr)
 rescue Object => e

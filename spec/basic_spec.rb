@@ -27,9 +27,12 @@ class User < TinyDS::Base
 end
 
 describe TinyDS::Base do
-  before :all do
+  before :each do
     #AppEngine::Testing.install_test_env
     AppEngine::Testing.install_test_datastore
+  end
+  after :all do
+    AppEngine::Testing.teardown
   end
 
   it "should return class name as kind" do
@@ -570,7 +573,7 @@ describe TinyDS::Base do
   end
 
   describe "query(1) basic" do
-    before :all do
+    before :each do
       Comment.destroy_all
       raise if Comment.count!=0
       rate = -1.0
@@ -661,7 +664,7 @@ describe TinyDS::Base do
     it "should return 1000+ count2"
   end
   describe "query(2) parent-children" do
-    before :all do
+    before :each do
       Comment.destroy_all
       raise if Comment.count!=0
       gparent = Comment.create(:title=>"GP")
@@ -701,7 +704,7 @@ describe TinyDS::Base do
     end
   end
   describe "query(3) raise" do
-    before :all do
+    before :each do
       Comment.destroy_all
       raise if Comment.count!=0
       child1  = Comment.create({:title=>"C1", :num=>10})
@@ -1042,7 +1045,7 @@ describe TinyDS::Base do
   end
 
   describe "batch_get_by_struct" do
-    before :all do
+    before :each do
       @c1 = Comment.create(:num=>1)
       @c2 = Comment.create(:num=>2)
       @c3 = Comment.create(:num=>3)

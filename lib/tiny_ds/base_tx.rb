@@ -1,3 +1,4 @@
+require 'yaml'
 module TinyDS
   class BaseTx
     class SrcJournal < ::TinyDS::Base
