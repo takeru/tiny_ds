@@ -3,6 +3,7 @@ require File.dirname(__FILE__) + '/spec_helper'
 class Comment < TinyDS::Base
   property :num,        :integer
   property :title,      :string
+  property :creator,    :user
   property :body,       :text
   property :flag,       :integer, :default=>5
   property :new_at,     :time,    :default=>proc{ Time.now }
@@ -209,7 +210,7 @@ describe TinyDS::Base do
       text.class.should == com.google.appengine.api.datastore.Text
     end
     it "should correct properties count" do
-      Comment.property_definitions.size.should == 9
+      Comment.property_definitions.size.should == 10
     end
     it "should initialized with default value" do
       a = Comment.new
@@ -565,6 +566,15 @@ describe TinyDS::Base do
       Comment.new(:view_at => now).view_at.should == now
       Comment.new(:view_at => nil).view_at.should == nil
       Comment.new(               ).view_at.should == nil
+    end
+    it "should covert to user" do
+      c0 = Comment.new(:creator => 'test@example.com')
+      c0.creator.should be_kind_of(com.google.appengine.api.users::User)
+      c0.creator.email.should == 'test@example.com'
+      c0.creator.auth_domain.should == 'gmail.com'
+
+      c1 = Comment.new(:creator => com.google.appengine.api.users::User.new('test@example.com','gmail.com'))
+      c1.creator.email.should == 'test@example.com'
     end
     it "should not convert to array" do
       proc{ User.new(:favorites => "zzzz"  ) }.should raise_error

@@ -42,6 +42,15 @@ class PropertyDefinition
       # ![nil, false].include?(v)
     when :text
       v.nil? ? nil : com.google.appengine.api.datastore::Text.new(v.to_s)
+    when :user
+      case v
+      when NilClass, com.google.appengine.api.users::User
+        v
+      when String
+        com.google.appengine.api.users::User.new(v, 'gmail.com')
+      else
+        raise "not User or String value"
+      end
     when :time
       case v
       when Time
@@ -73,6 +82,8 @@ class PropertyDefinition
     when :float
       ds_v.nil? ? nil : ds_v.to_f
     when :boolean
+      ds_v
+    when :user
       ds_v
     when :text
       ds_v.nil? ? nil : ds_v.to_s
