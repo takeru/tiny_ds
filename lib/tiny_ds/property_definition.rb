@@ -47,7 +47,11 @@ class PropertyDefinition
       when NilClass, com.google.appengine.api.users::User
         v
       when String
-        com.google.appengine.api.users::User.new(v, 'gmail.com')
+        if defined?(AppEngine::Users::User)
+          AppEngine::Users::User.new(v)
+        else
+          com.google.appengine.api.users::User.new(v, 'gmail.com')
+        end
       else
         raise "not User or String value"
       end
