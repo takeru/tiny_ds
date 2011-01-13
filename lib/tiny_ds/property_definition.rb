@@ -42,6 +42,8 @@ class PropertyDefinition
       # ![nil, false].include?(v)
     when :text
       v.nil? ? nil : com.google.appengine.api.datastore::Text.new(v.to_s)
+    when :key
+      v.nil? ? nil : TinyDS::Base.to_key(v)
     when :user
       case v
       when NilClass, com.google.appengine.api.users::User
@@ -87,7 +89,7 @@ class PropertyDefinition
       ds_v.nil? ? nil : ds_v.to_f
     when :boolean
       ds_v
-    when :user
+    when :user, :key
       ds_v
     when :text
       ds_v.nil? ? nil : ds_v.to_s

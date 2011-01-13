@@ -18,6 +18,7 @@ class Animal < TinyDS::Base
   property :color,      :string,  :index=>true
   property :memo,       :string,  :index=>false
   property :age,        :integer, :index=>nil
+  property :owner_key,  :key
 end
 
 class User < TinyDS::Base
@@ -567,7 +568,7 @@ describe TinyDS::Base do
       Comment.new(:view_at => nil).view_at.should == nil
       Comment.new(               ).view_at.should == nil
     end
-    it "should covert to user" do
+    it "should convert to user" do
       c0 = Comment.new(:creator => 'test@example.com')
       c0.creator.should be_kind_of(com.google.appengine.api.users::User)
       c0.creator.email.should == 'test@example.com'
@@ -575,6 +576,20 @@ describe TinyDS::Base do
 
       c1 = Comment.new(:creator => com.google.appengine.api.users::User.new('test@example.com','gmail.com'))
       c1.creator.email.should == 'test@example.com'
+    end
+    it "should convert to key" do
+      u = User.create({})
+      a0 = Animal.new(:owner_key => u)
+      a0.owner_key.should == u.key
+
+      a1 = Animal.new(:owner_key => u.key)
+      a1.owner_key.should == u.key
+
+      a2 = Animal.new(:owner_key => u.key.to_s)
+      a2.owner_key.should == u.key
+
+      a3 = Animal.new(:owner_key => nil)
+      a3.owner_key.should == nil
     end
     it "should not convert to array" do
       proc{ User.new(:favorites => "zzzz"  ) }.should raise_error
