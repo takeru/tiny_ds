@@ -1,5 +1,6 @@
 module TinyDS
 class PropertyDefinition
+  attr_reader :ptype, :pname
   def initialize(pname, ptype, opts)
     @pname = pname
     @ptype = ptype
@@ -26,7 +27,7 @@ class PropertyDefinition
 
   def to_ds_value(v)
     case @ptype
-    when :string
+    when :string, :type
       v.nil? ? nil : v.to_s
     when :integer
       v.nil? ? nil : v.to_i
@@ -65,7 +66,7 @@ class PropertyDefinition
   end
   def to_ruby_value(ds_v)
     case @ptype
-    when :string
+    when :string, :type
       ds_v.nil? ? nil : ds_v.to_s
     when :integer
       ds_v.nil? ? nil : ds_v.to_i

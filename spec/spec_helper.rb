@@ -60,7 +60,12 @@ begin
       AppEngine::Testing::install_test_env
     end
   end
-  at_exit {java.lang.System.exit(0)}
+  at_exit do
+    $stdout.flush
+    $stderr.flush
+    sleep 1
+    java.lang.System.exit(0)
+  end
   AppEngine::Testing::install_test_datastore
   $app_logger = Logger.new($stderr)
 rescue Object => e
