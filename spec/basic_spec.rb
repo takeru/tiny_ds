@@ -470,6 +470,16 @@ describe TinyDS::Base do
       a[1].should be_nil
       a[2].key.to_s.should == k2.to_s
     end
+    it "should get by ids with parent" do
+      k0 = Comment.create({}).key
+      k1 = Comment.create({}, :parent => k0).key
+      k2 = Comment.create({}, :parent => k0).key
+
+      a = Comment.get_by_ids([k1.id,k2.id], k0)
+      a.size.should == 2
+      a[0].key.to_s.should == k1.to_s
+      a[1].key.to_s.should == k2.to_s
+    end
     it "should be got by names"
   end
 
