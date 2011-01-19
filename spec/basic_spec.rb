@@ -1079,6 +1079,49 @@ describe TinyDS::Base do
     end
   end
 
+  describe "two objects with the same key" do
+    before :each do
+      @c1 = Comment.create(:num=>1)
+    end
+    it "should be ==" do
+      (Comment.get(@c1.key) == Comment.get(@c1.key)).should be_true
+    end
+    it "should be ===" do
+      (Comment.get(@c1.key) === Comment.get(@c1.key)).should be_true
+    end
+    it "should be eql?" do
+      (Comment.get(@c1.key).eql? Comment.get(@c1.key)).should be_true
+    end
+    it "should have the same hash" do
+      Comment.get(@c1.key).hash.should == Comment.get(@c1.key).hash
+    end
+    it "should not be equal?" do
+      (Comment.get(@c1.key).equal? Comment.get(@c1.key)).should be_false
+    end
+    it "should work with uniq" do
+      [Comment.get(@c1.key), Comment.get(@c1.key)].uniq.size.should == 1
+    end
+  end
+
+  describe "two unsaved objects" do
+    before :each do
+      @c1 = Comment.new(:num=>1)
+      @c1 = Comment.new(:num=>1)
+    end
+    it "should not be ==" do
+      (@c1 == @c2).should be_false
+    end
+    it "should not be ===" do
+      (@c1 === @c2).should be_false
+    end
+    it "should not be eql?" do
+      (@c1.eql? @c2).should be_false
+    end
+    it "should not have the same hash" do
+      @c1.hash.should_not == @c2.hash
+    end
+  end
+
   describe "batch_get_by_struct" do
     before :each do
       @c1 = Comment.create(:num=>1)

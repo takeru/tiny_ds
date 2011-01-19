@@ -384,6 +384,22 @@ class Base
     v
   end
 
+  def ==(other)
+    return true if equal?(other)
+    return false unless other.kind_of?(Base)
+    return key == other.key
+  end
+
+  def eql?(other)
+    return true if equal?(other)
+    return false unless other.kind_of?(Base)
+    return key.eql? other.key
+  end
+
+  def hash
+    key.hash
+  end
+
 =begin
   def method_missing(m, *args)
     k, is_set = if m.to_s =~ /(.+)=$/
