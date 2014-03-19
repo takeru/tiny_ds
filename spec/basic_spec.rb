@@ -3,6 +3,7 @@ require File.dirname(__FILE__) + '/spec_helper'
 class Comment < TinyDS::Base
   property :num,        :integer
   property :title,      :string
+  property :creator,    :user
   property :body,       :text
   property :flag,       :integer, :default=>5
   property :new_at,     :time,    :default=>proc{ Time.now }
@@ -17,6 +18,7 @@ class Animal < TinyDS::Base
   property :color,      :string,  :index=>true
   property :memo,       :string,  :index=>false
   property :age,        :integer, :index=>nil
+  property :owner_key,  :key
 end
 
 class User < TinyDS::Base
@@ -27,9 +29,12 @@ class User < TinyDS::Base
 end
 
 describe TinyDS::Base do
-  before :all do
+  before :each do
     #AppEngine::Testing.install_test_env
     AppEngine::Testing.install_test_datastore
+  end
+  after :all do
+    AppEngine::Testing.teardown
   end
 
   it "should return class name as kind" do
@@ -206,7 +211,7 @@ describe TinyDS::Base do
       text.class.should == com.google.appengine.api.datastore.Text
     end
     it "should correct properties count" do
-      Comment.property_definitions.size.should == 9
+      Comment.property_definitions.size.should == 10
     end
     it "should initialized with default value" do
       a = Comment.new
@@ -465,6 +470,16 @@ describe TinyDS::Base do
       a[1].should be_nil
       a[2].key.to_s.should == k2.to_s
     end
+    it "should get by ids with parent" do
+      k0 = Comment.create({}).key
+      k1 = Comment.create({}, :parent => k0).key
+      k2 = Comment.create({}, :parent => k0).key
+
+      a = Comment.get_by_ids([k1.id,k2.id], k0)
+      a.size.should == 2
+      a[0].key.to_s.should == k1.to_s
+      a[1].key.to_s.should == k2.to_s
+    end
     it "should be got by names"
   end
 
@@ -563,6 +578,29 @@ describe TinyDS::Base do
       Comment.new(:view_at => nil).view_at.should == nil
       Comment.new(               ).view_at.should == nil
     end
+    it "should convert to user" do
+      c0 = Comment.new(:creator => 'test@example.com')
+      c0.creator.should be_kind_of(com.google.appengine.api.users::User)
+      c0.creator.email.should == 'test@example.com'
+      c0.creator.auth_domain.should == 'gmail.com'
+
+      c1 = Comment.new(:creator => com.google.appengine.api.users::User.new('test@example.com','gmail.com'))
+      c1.creator.email.should == 'test@example.com'
+    end
+    it "should convert to key" do
+      u = User.create({})
+      a0 = Animal.new(:owner_key => u)
+      a0.owner_key.should == u.key
+
+      a1 = Animal.new(:owner_key => u.key)
+      a1.owner_key.should == u.key
+
+      a2 = Animal.new(:owner_key => u.key.to_s)
+      a2.owner_key.should == u.key
+
+      a3 = Animal.new(:owner_key => nil)
+      a3.owner_key.should == nil
+    end
     it "should not convert to array" do
       proc{ User.new(:favorites => "zzzz"  ) }.should raise_error
       proc{ User.new(:favorites => 123     ) }.should raise_error
@@ -570,7 +608,7 @@ describe TinyDS::Base do
   end
 
   describe "query(1) basic" do
-    before :all do
+    before :each do
       Comment.destroy_all
       raise if Comment.count!=0
       rate = -1.0
@@ -661,7 +699,7 @@ describe TinyDS::Base do
     it "should return 1000+ count2"
   end
   describe "query(2) parent-children" do
-    before :all do
+    before :each do
       Comment.destroy_all
       raise if Comment.count!=0
       gparent = Comment.create(:title=>"GP")
@@ -701,7 +739,7 @@ describe TinyDS::Base do
     end
   end
   describe "query(3) raise" do
-    before :all do
+    before :each do
       Comment.destroy_all
       raise if Comment.count!=0
       child1  = Comment.create({:title=>"C1", :num=>10})
@@ -1041,8 +1079,51 @@ describe TinyDS::Base do
     end
   end
 
+  describe "two objects with the same key" do
+    before :each do
+      @c1 = Comment.create(:num=>1)
+    end
+    it "should be ==" do
+      (Comment.get(@c1.key) == Comment.get(@c1.key)).should be_true
+    end
+    it "should be ===" do
+      (Comment.get(@c1.key) === Comment.get(@c1.key)).should be_true
+    end
+    it "should be eql?" do
+      (Comment.get(@c1.key).eql? Comment.get(@c1.key)).should be_true
+    end
+    it "should have the same hash" do
+      Comment.get(@c1.key).hash.should == Comment.get(@c1.key).hash
+    end
+    it "should not be equal?" do
+      (Comment.get(@c1.key).equal? Comment.get(@c1.key)).should be_false
+    end
+    it "should work with uniq" do
+      [Comment.get(@c1.key), Comment.get(@c1.key)].uniq.size.should == 1
+    end
+  end
+
+  describe "two unsaved objects" do
+    before :each do
+      @c1 = Comment.new(:num=>1)
+      @c1 = Comment.new(:num=>1)
+    end
+    it "should not be ==" do
+      (@c1 == @c2).should be_false
+    end
+    it "should not be ===" do
+      (@c1 === @c2).should be_false
+    end
+    it "should not be eql?" do
+      (@c1.eql? @c2).should be_false
+    end
+    it "should not have the same hash" do
+      @c1.hash.should_not == @c2.hash
+    end
+  end
+
   describe "batch_get_by_struct" do
-    before :all do
+    before :each do
       @c1 = Comment.create(:num=>1)
       @c2 = Comment.create(:num=>2)
       @c3 = Comment.create(:num=>3)

@@ -1,5 +1,6 @@
 module TinyDS
 class PropertyDefinition
+  attr_reader :ptype, :pname
   def initialize(pname, ptype, opts)
     @pname = pname
     @ptype = ptype
@@ -26,7 +27,7 @@ class PropertyDefinition
 
   def to_ds_value(v)
     case @ptype
-    when :string
+    when :string, :type
       v.nil? ? nil : v.to_s
     when :integer
       v.nil? ? nil : v.to_i
@@ -41,6 +42,21 @@ class PropertyDefinition
       # ![nil, false].include?(v)
     when :text
       v.nil? ? nil : com.google.appengine.api.datastore::Text.new(v.to_s)
+    when :key
+      v.nil? ? nil : TinyDS::Base.to_key(v)
+    when :user
+      case v
+      when NilClass, com.google.appengine.api.users::User
+        v
+      when String
+        if defined?(AppEngine::Users::User)
+          AppEngine::Users::User.new(v)
+        else
+          com.google.appengine.api.users::User.new(v, 'gmail.com')
+        end
+      else
+        raise "not User or String value"
+      end
     when :time
       case v
       when Time
@@ -65,13 +81,15 @@ class PropertyDefinition
   end
   def to_ruby_value(ds_v)
     case @ptype
-    when :string
+    when :string, :type
       ds_v.nil? ? nil : ds_v.to_s
     when :integer
       ds_v.nil? ? nil : ds_v.to_i
     when :float
       ds_v.nil? ? nil : ds_v.to_f
     when :boolean
+      ds_v
+    when :user, :key
       ds_v
     when :text
       ds_v.nil? ? nil : ds_v.to_s

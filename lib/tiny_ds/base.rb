@@ -4,17 +4,28 @@ module TinyDS
 class Base
   class << self; attr_accessor :_property_definitions; end
   RESERVED_PROPERTY_NAME = [:id, :name, :key, :entity, :parent_key, :parent]
-  VALID_PROPERTY_TYPE = [:string, :integer, :float, :boolean, :text, :time, :list]
+  VALID_PROPERTY_TYPE = [:string, :integer, :float, :boolean, :text, :time, :list, :type, :user, :key]
   def self.property(pname, ptype, opts={})
     pname = pname.to_sym
     if RESERVED_PROPERTY_NAME.include?(pname)
       raise "property name '#{pname}' is reserved."
     end
-    property_definitions[pname] = PropertyDefinition.new(pname, ptype, opts)
+    (self._property_definitions||={})[pname] = PropertyDefinition.new(pname, ptype, opts)
+    define_method "#{pname}" do
+      get_property(pname)
+    end
+    define_method "#{pname}=" do |value|
+      set_property(pname, value)
+    end
   end
 
   def self.property_definitions
-    self._property_definitions ||= {}
+    if superclass != Base
+      defs = superclass.property_definitions
+    else
+      defs = {}
+    end
+    defs.merge(self._property_definitions ||= {})
   end
 
   def self.property_definition(name)
@@ -46,9 +57,22 @@ class Base
     attrs
   end
 
+  def self.sti_property_definition
+    name, sti_def = property_definitions.detect {|pname, pdef| pdef.ptype == :type}
+    sti_def
+  end
+  def self.sti?
+    !!sti_property_definition
+  end
+    
+
   # kind-string of entity
   def self.kind
-    name
+    if superclass != Base && superclass.sti?
+      superclass.kind
+    else
+      name
+    end
   end
 
   #include ActiveModel::Naming
@@ -129,12 +153,30 @@ class Base
   end
 
   def self.new_from_entity(_entity)
-    new(nil, :entity=>_entity)
+    clazz = self
+    if sti_def = self.sti_property_definition
+      if type_name = _entity[sti_def.pname]
+        clazz = constantize(type_name)
+      end
+    end
+    clazz.new(nil, :entity=>_entity)
   end
   attr_reader :entity
 
   def new_record?
     @new_record
+  end
+
+  def persisted?
+    !new_record?
+  end
+
+  def to_param
+    self.key.to_s if persisted?
+  end
+
+  def to_key
+    [self.key] if persisted?
   end
 
   # foo.save
@@ -148,6 +190,7 @@ class Base
       # raise "entity is readonly."
       logger.warn "entity is readonly. key=[#{self.key.inspect}]"
     end
+    __before_save_set_type
     __before_save_set_timestamps
 #    if @new_record && @entity.key && parent
 #      TinyDS.tx{
@@ -164,6 +207,11 @@ class Base
   end
 #  class KeyIsAlreadyTaken < StandardError
 #  end
+  def __before_save_set_type
+    if type_prop = self.class.sti_property_definition
+      self.set_property(type_prop.pname, self.class.name)
+    end
+  end
 
   def __before_save_set_timestamps
     if self.class.has_property?(:created_at) && new_record?
@@ -336,6 +384,23 @@ class Base
     v
   end
 
+  def ==(other)
+    return true if equal?(other)
+    return false unless other.kind_of?(Base)
+    return key == other.key
+  end
+
+  def eql?(other)
+    return true if equal?(other)
+    return false unless other.kind_of?(Base)
+    return key.eql? other.key
+  end
+
+  def hash
+    key.hash
+  end
+
+=begin
   def method_missing(m, *args)
     k, is_set = if m.to_s =~ /(.+)=$/
                   [$1.to_sym, true]
@@ -355,6 +420,7 @@ class Base
       super(m, *args)
     end
   end
+=end
 
   def logger
     self.class.logger

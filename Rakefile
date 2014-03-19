@@ -3,6 +3,7 @@ require 'rake/rdoctask'
 require 'rake/gempackagetask'
 require 'rubygems/specification'
 require 'date'
+require 'rspec/core/rake_task'
 
 require File.dirname(__FILE__) + '/lib/tiny_ds/version'
 
@@ -43,3 +44,4 @@ Rake::RDocTask.new do |rd|
    rd.rdoc_files.include("README.rdoc", "lib/**/*.rb")
 end
 
+RSpec::Core::RakeTask.new(:spec)
